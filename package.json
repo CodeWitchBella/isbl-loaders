@@ -24,12 +24,14 @@
     "@types/lodash.snakecase": "^4.1.4",
     "@types/luxon": "^1.4.0",
     "dataloader": "^1.4.0",
-    "knex": "^0.15.2",
     "lodash": "^4.17.11",
     "lodash.camelcase": "^4.3.0",
     "lodash.isequalwith": "^4.4.0",
     "lodash.snakecase": "^4.1.1",
     "luxon": "^1.4.3"
+  },
+  "peerDependencies": {
+    "knex": "^0.15.2"
   },
   "devDependencies": {
     "@s-isabella/scripts-backend": "^0.0.11"
