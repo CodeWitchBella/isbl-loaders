@@ -1,0 +1,40 @@
+{
+  "name": "@s-isabella/loaders",
+  "version": "0.0.1",
+  "description": "Query and update database in sane way with typescript checking",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/isabella.skorepova/isa-scripts.git"
+  },
+  "author": "Isabella Skořepová <isabella@skorepova.info>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://gitlab.com/isabella.skorepova/isa-scripts/issues"
+  },
+  "homepage": "https://gitlab.com/isabella.skorepova/isa-scripts#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@s-isabella/ts-utils": "0.0.10",
+    "@types/knex": "^0.14.26",
+    "@types/lodash.camelcase": "^4.3.4",
+    "@types/lodash.isequalwith": "^4.4.4",
+    "@types/lodash.snakecase": "^4.1.4",
+    "@types/luxon": "^1.4.0",
+    "dataloader": "^1.4.0",
+    "knex": "^0.15.2",
+    "lodash": "^4.17.11",
+    "lodash.camelcase": "^4.3.0",
+    "lodash.isequalwith": "^4.4.0",
+    "lodash.snakecase": "^4.1.1",
+    "luxon": "^1.4.3"
+  },
+  "devDependencies": {
+    "@s-isabella/scripts-backend": "0.0.10"
+  },
+  "scripts": {
+    "prepare": "isa-scripts-backend build-typedefs"
+  }
+}
