@@ -2,7 +2,8 @@
   "name": "@s-isabella/loaders",
   "version": "0.0.12",
   "description": "Query and update database in sane way with typescript checking",
-  "main": "src/index.js",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://gitlab.com/isabella.skorepova/isa-scripts.git"
