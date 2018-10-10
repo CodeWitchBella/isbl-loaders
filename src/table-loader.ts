@@ -123,8 +123,10 @@ export default class TableLoader<
     field: Field,
   ) {
     const loader = new DataLoader<Key, JSType[]>(async ids => {
+      const dbField = fieldToDB(field as any)
+      const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
       const rows = await this.query(q =>
-        q.whereIn(fieldToDB(field as any), ids as any).select(),
+        q.whereIn(dbField, ids.filter(unique).map(valueToDB).filter(unique) as any).select(),
       )
       return ids.map(id => rows.filter((x: any) => x[field] === id) || [])
     })
@@ -145,8 +147,10 @@ export default class TableLoader<
     type: 'string' | 'number' | 'object',
   ) {
     const loader = new DataLoader<Key, JSType | null>(async ids => {
+      const dbField = fieldToDB(field as any)
+      const valueToDB = (v: any) => this.toDB({[field]: v})[dbField]
       const rows: any[] = await this.query(q =>
-        q.whereIn(fieldToDB(field as any), ids.filter(unique) as any),
+        q.whereIn(dbField, ids.filter(unique).map(valueToDB).filter(unique) as any),
       )
       return ids.map(id => {
         const items = rows.filter((x: any) => x[field] === id)
@@ -280,7 +284,7 @@ export default class TableLoader<
       },
       { cache: false },
     )
-    return (value: NonIDProperties<JSType>) => loader.load(value)
+    return (value: NonIDProperties<JSType>) => loader.load(this.toDB(value))
   }
 
   /**
