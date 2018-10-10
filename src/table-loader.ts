@@ -66,7 +66,7 @@ export default class TableLoader<
 
   private fromDB(o: any): JSType {
     const object = transformKey(camelCase)(o)
-    const r = { ...object, id: { type: this.table, value: object.id } }
+    const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
       for (const [key, resolver] of Object.entries(this.options.fromDB)) {
         if (key in object && resolver) {
