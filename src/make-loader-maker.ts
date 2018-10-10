@@ -62,12 +62,13 @@ export const makeLoaderMaker = <TableToTypeMap>() => <
     >,
   ) => T = () => ({} as T),
 ) => (args: Args) => {
+  const converters = mapValues(opts.converters, c => c ? c({ table: opts.table }) : null)
   const loader = new TableLoader<
     TableToTypeMap[Table],
     JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>
   >({
-    toDB: mapValues(opts.converters as any, v => v.toDB) as any,
-    fromDB: mapValues(opts.converters as any, v => v.fromDB) as any,
+    toDB: mapValues(converters, v => v ? v.toDB : null),
+    fromDB: mapValues(converters, v => v? v.fromDB : null),
     table: opts.table,
     knex: args.knex,
   } as any)
