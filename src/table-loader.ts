@@ -107,10 +107,12 @@ export default class TableLoader<
    */
   private async query(
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
+    { convert = false}: {convert?: boolean} = {},
   ): Promise<JSType[]> {
     const res: any[] = await doQuery(this.knex.table(this.table).select())
-
-    return res.filter(a => a).map(a => this.fromDB(a))
+    const filtered = res.filter(a => a)
+    if(!convert) return filtered
+    return filtered.map(a => this.fromDB(a))
   }
 
   /**
@@ -127,13 +129,14 @@ export default class TableLoader<
       const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
       const rows = await this.query(q =>
         q.whereIn(dbField, ids.filter(unique).map(valueToDB).filter(unique) as any).select(),
+        { convert: false },
       )
-      return ids.map(id => rows.filter((x: any) => x[field] === id) || [])
+      return ids.map(id => rows.filter((x: any) => x[field] === valueToDB(id)) || [])
     })
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (a: Key) => loader.load(a)
+    return (a: Key) => loader.load(a).then(v => v.map(el => this.fromDB(el)))
   }
 
   /**
@@ -144,34 +147,17 @@ export default class TableLoader<
    */
   byFieldValueSingle<Key extends JSType[Field], Field extends keyof JSType>(
     field: Field,
-    type: 'string' | 'number' | 'object',
   ) {
-    const loader = new DataLoader<Key, JSType | null>(async ids => {
-      const dbField = fieldToDB(field as any)
-      const valueToDB = (v: any) => this.toDB({[field]: v})[dbField]
-      const rows: any[] = await this.query(q =>
-        q.whereIn(dbField, ids.filter(unique).map(valueToDB).filter(unique) as any),
+    const loader = this.byFieldValueMultiple(field)
+    return (a: Key) => loader(a).then(v => {
+      if(v.length === 0) return null
+      if(v.length === 1) return v[0]
+      throw new Error(
+        `Found more than one item for field "${field}" value "${a}" in table "${
+          this.table
+        }"`,
       )
-      return ids.map(id => {
-        const items = rows.filter((x: any) => x[field] === id)
-        if (items.length === 0) return null
-        if (items.length === 1) return items[0]
-        return new Error(
-          `Found more than one item for field "${field}" value "${id}" in table "${
-            this.table
-          }"`,
-        )
-      })
     })
-    this.clearers.push(() => {
-      loader.clearAll()
-    })
-    return (a: Key) => {
-      // eslint-disable-next-line valid-typeof
-      if (typeof a !== type)
-        throw new Error(`Value for ${field} must be ${type}`)
-      return loader.load(a)
-    }
   }
 
   /**
@@ -216,7 +202,7 @@ export default class TableLoader<
    */
   byId() {
     // this any is needed because specifying JSType extends { id: number } did not work
-    return this.byFieldValueSingle('id' as any, 'number')
+    return this.byFieldValueSingle('id' as any)
   }
 
   /**
