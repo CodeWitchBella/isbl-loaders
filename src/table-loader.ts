@@ -137,9 +137,9 @@ export default class TableLoader<
             .select(),
         { convert: false },
       )
-      return ids.map(
-        id => rows.filter((x: any) => x[field] === valueToDB(id)) || [],
-      )
+      return ids
+        .map(valueToDB)
+        .map(id => rows.filter((x: any) => x[dbField] === id) || [])
     })
     this.clearers.push(() => {
       loader.clearAll()
