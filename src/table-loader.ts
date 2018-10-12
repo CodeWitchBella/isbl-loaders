@@ -307,11 +307,14 @@ export default class TableLoader<
    * Also clears cache
    */
   update() {
-    return async (value: NonIDProperties<JSType>): Promise<void> => {
+    return async (
+      id: JSType extends { id: any } ? JSType['id'] : never,
+      value: NonIDProperties<JSType>,
+    ): Promise<void> => {
       await this.knex
         .table(this.table)
-        .where({ id: value.id })
-        .update({ ...this.toDB(value) })
+        .where(this.toDB({ id }))
+        .update(this.toDB(value))
       this.clearers.forEach(c => c())
     }
   }
