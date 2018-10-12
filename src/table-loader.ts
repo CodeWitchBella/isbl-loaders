@@ -18,6 +18,8 @@ function fieldToDB(field: string) {
 }
 
 type NonIDProperties<T> = PickExcept<T, 'id'>
+type OrArray<T> = T | T[]
+type IDType<JSType> = JSType extends { id: any } ? JSType['id'] : never
 
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
   arr.findIndex(a => a === el) === i
@@ -218,11 +220,13 @@ export default class TableLoader<
    * Deletes values
    */
   delete() {
-    return async (ids: (JSType extends { id: any } ? JSType['id'] : never)[]) =>
+    const toArray = <T>(v: OrArray<T>): T[] => (Array.isArray(v) ? v : [v])
+    return async (ids: OrArray<IDType<JSType>>): Promise<void> =>
       this.knex
         .table(this.table)
         .delete()
-        .whereIn('id', ids.map(id => this.toDB({ id }).id))
+        .whereIn('id', toArray(ids).map(id => this.toDB({ id }).id))
+        .then(() => {})
   }
 
   all() {
@@ -308,7 +312,7 @@ export default class TableLoader<
    */
   update() {
     return async (
-      id: JSType extends { id: any } ? JSType['id'] : never,
+      id: IDType<JSType>,
       value: Partial<NonIDProperties<JSType>>,
     ): Promise<void> => {
       await this.knex
