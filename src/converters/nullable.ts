@@ -1,4 +1,4 @@
-import { ConverterFactory, ConverterInfo } from "../make-loader-maker";
+import { ConverterFactory, ConverterInfo } from '../make-loader-maker'
 
 export const nullableConverter = <Table, JS, TableName>(
   converter: ConverterFactory<Table, JS, TableName>,

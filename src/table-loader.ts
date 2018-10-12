@@ -107,11 +107,11 @@ export default class TableLoader<
    */
   private async query(
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
-    { convert = false}: {convert?: boolean} = {},
+    { convert = false }: { convert?: boolean } = {},
   ): Promise<JSType[]> {
     const res: any[] = await doQuery(this.knex.table(this.table).select())
     const filtered = res.filter(a => a)
-    if(!convert) return filtered
+    if (!convert) return filtered
     return filtered.map(a => this.fromDB(a))
   }
 
@@ -127,11 +127,19 @@ export default class TableLoader<
     const loader = new DataLoader<Key, JSType[]>(async ids => {
       const dbField = fieldToDB(field as any)
       const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
-      const rows = await this.query(q =>
-        q.whereIn(dbField, ids.filter(unique).map(valueToDB).filter(unique) as any).select(),
+      const rows = await this.query(
+        q =>
+          q
+            .whereIn(dbField, ids
+              .filter(unique)
+              .map(valueToDB)
+              .filter(unique) as any)
+            .select(),
         { convert: false },
       )
-      return ids.map(id => rows.filter((x: any) => x[field] === valueToDB(id)) || [])
+      return ids.map(
+        id => rows.filter((x: any) => x[field] === valueToDB(id)) || [],
+      )
     })
     this.clearers.push(() => {
       loader.clearAll()
@@ -149,15 +157,16 @@ export default class TableLoader<
     field: Field,
   ) {
     const loader = this.byFieldValueMultiple(field)
-    return (a: Key) => loader(a).then(v => {
-      if(v.length === 0) return null
-      if(v.length === 1) return v[0]
-      throw new Error(
-        `Found more than one item for field "${field}" value "${a}" in table "${
-          this.table
-        }"`,
-      )
-    })
+    return (a: Key) =>
+      loader(a).then(v => {
+        if (v.length === 0) return null
+        if (v.length === 1) return v[0]
+        throw new Error(
+          `Found more than one item for field "${field}" value "${a}" in table "${
+            this.table
+          }"`,
+        )
+      })
   }
 
   /**

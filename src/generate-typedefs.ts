@@ -18,7 +18,7 @@ function convertType(type: string) {
     text: 'string',
     boolean: 'boolean',
     'double precision': 'number',
-    bigint: 'string'
+    bigint: 'string',
   } as { [key: string]: string })[type]
   if (!ret) {
     throw new Error(`Unknown type ${type}`)
@@ -34,7 +34,7 @@ function typeForColumn(column: any, elementTypes: any[]) {
       et =>
         et.object_name === column.table_name &&
         et.object_type === 'TABLE' &&
-        et.collection_type_identifier === column.dtd_identifier
+        et.collection_type_identifier === column.dtd_identifier,
     )
     ret = `${convertType(t.data_type)}[]`
   } else {
@@ -48,25 +48,25 @@ function defForTable(table: string, columns: any, elementTypes: any[]) {
   return `interface ${table} {\n${columns
     .map(
       (c: any) =>
-        `  ${transformKey(c.column_name)}: ${typeForColumn(c, elementTypes)}`
+        `  ${transformKey(c.column_name)}: ${typeForColumn(c, elementTypes)}`,
     )
     .join('\n')}\n}`
 }
 
 export const generateTypedefs = async ({
   knex,
-  output
+  output,
 }: {
   knex: Knex
   output: string
 }) => {
   const columns = await knex('information_schema.columns').where(
     'table_schema',
-    'public'
+    'public',
   )
   const elementTypes = await knex('information_schema.element_types').where(
     'object_schema',
-    'public'
+    'public',
   )
   const tableMap: any = {}
   for (const col of columns) {
