@@ -218,11 +218,11 @@ export default class TableLoader<
    * Deletes values
    */
   delete() {
-    return async (ids: number[]) =>
+    return async (ids: (JSType extends { id: any } ? JSType['id'] : never)[]) =>
       this.knex
         .table(this.table)
         .delete()
-        .whereIn('id', ids)
+        .whereIn('id', ids.map(id => this.toDB({ id }).id))
   }
 
   all() {
