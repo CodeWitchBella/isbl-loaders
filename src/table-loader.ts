@@ -309,7 +309,7 @@ export default class TableLoader<
   update() {
     return async (
       id: JSType extends { id: any } ? JSType['id'] : never,
-      value: NonIDProperties<JSType>,
+      value: Partial<NonIDProperties<JSType>>,
     ): Promise<void> => {
       await this.knex
         .table(this.table)
