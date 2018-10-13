@@ -230,10 +230,15 @@ export default class TableLoader<
   }
 
   all() {
-    return (): Promise<JSType[]> =>
+    return ({
+      orderBy = 'id' as any,
+    }: {
+      orderBy?: keyof JSType
+    }): Promise<JSType[]> =>
       this.knex
         .table(this.table)
         .select()
+        .orderBy(fieldToDB(orderBy as any))
         .then(l => l.map((a: any) => this.fromDB(a as any))) as any
   }
 
