@@ -234,7 +234,7 @@ export default class TableLoader<
       orderBy = 'id' as any,
     }: {
       orderBy?: keyof JSType
-    }): Promise<JSType[]> =>
+    } = {}): Promise<JSType[]> =>
       this.knex
         .table(this.table)
         .select()
