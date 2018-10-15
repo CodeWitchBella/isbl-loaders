@@ -1,8 +1,9 @@
 import Knex from 'knex'
-import TableLoader from './table-loader'
 import { AllPropertiesExcept, PickExcept } from '@s-isabella/ts-utils'
-import { mapValues } from 'lodash'
+import mapValues from 'lodash.mapvalues'
+import TableLoader from './table-loader'
 import { IDType } from './converters/id-converter'
+
 type Args = { knex: Knex }
 
 type JSType<
@@ -32,7 +33,7 @@ type JSTypeWithID<JSType, TableName> = PickExcept<JSType, 'id'> & {
   id: IDType<TableName>
 }
 
-export const makeLoaderMaker = <TableToTypeMap>() => <
+export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
   Table extends keyof TableToTypeMap,
   JSTypePatch extends {} = {}
 >(opts: {
@@ -54,7 +55,7 @@ export const makeLoaderMaker = <TableToTypeMap>() => <
           Table
         >
   }
-}) => <T>(
+}) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
       TableToTypeMap[Table],

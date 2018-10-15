@@ -22,14 +22,13 @@
     "@types/knex": "^0.14.26",
     "@types/lodash.camelcase": "^4.3.4",
     "@types/lodash.isequalwith": "^4.4.4",
+    "@types/lodash.mapvalues": "^4.6.4",
     "@types/lodash.snakecase": "^4.1.4",
-    "@types/luxon": "^1.4.0",
     "dataloader": "^1.4.0",
-    "lodash": "^4.17.11",
     "lodash.camelcase": "^4.3.0",
     "lodash.isequalwith": "^4.4.0",
-    "lodash.snakecase": "^4.1.1",
-    "luxon": "^1.4.3"
+    "lodash.mapvalues": "^4.6.0",
+    "lodash.snakecase": "^4.1.1"
   },
   "peerDependencies": {
     "knex": "^0.15.2"
@@ -38,6 +37,8 @@
     "@s-isabella/scripts-backend": "^0.0.13"
   },
   "scripts": {
-    "prepare": "isa-scripts-backend build-typedefs"
+    "prepare": "isa-scripts-backend build-typedefs",
+    "check": "isa-scripts-backend check",
+    "lint": "isa-scripts-backend lint"
   }
 }
