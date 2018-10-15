@@ -332,7 +332,8 @@ export default class TableLoader<
    * Runs select query and transforms result to JSType
    */
   raw(): RawQuery<JSType> {
-    return async doQuery => this.query(doQuery)
+    return async doQuery =>
+      this.query(doQuery).then(v => v.map(el => this.fromDB(el)))
   }
 
   /**
@@ -340,7 +341,7 @@ export default class TableLoader<
    * Does NOT have any performance benefits.
    */
   preparedRaw(doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder) {
-    return () => this.query(doQuery)
+    return () => this.query(doQuery).then(v => v.map(el => this.fromDB(el)))
   }
 
   /**
