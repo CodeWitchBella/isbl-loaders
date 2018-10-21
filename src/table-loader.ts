@@ -17,6 +17,19 @@ function fieldToDB(field: string) {
   return snakeCase(field)
 }
 
+function rethrowWrap<T extends (...args: any[]) => Promise<any>>(fn: T): T {
+  return (async (...args: any[]) => {
+    try {
+      return await fn(...args)
+    } catch (e) {
+      if ('message' in e) {
+        throw new Error(e.message)
+      }
+      throw e
+    }
+  }) as any
+}
+
 type NonIDProperties<T> = PickExcept<T, 'id'>
 type OrArray<T> = T | T[]
 type IDType<JSType> = JSType extends { id: any } ? JSType['id'] : never
@@ -158,7 +171,9 @@ export default class TableLoader<
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (a: Key) => loader.load(a).then(v => v.map(el => this.fromDB(el)))
+    return rethrowWrap((a: Key) =>
+      loader.load(a).then(v => v.map(el => this.fromDB(el))),
+    )
   }
 
   /**
@@ -216,7 +231,9 @@ export default class TableLoader<
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (v1: JSType[FieldA], v2: JSType[FieldB]) => loader.load([v1, v2])
+    return rethrowWrap((v1: JSType[FieldA], v2: JSType[FieldB]) =>
+      loader.load([v1, v2]),
+    )
   }
 
   /**
@@ -232,7 +249,8 @@ export default class TableLoader<
    * Deletes values
    */
   delete() {
-    const toArray = <T>(v: OrArray<T>): T[] => (Array.isArray(v) ? v : [v])
+    const toArray = <T extends {}>(v: OrArray<T>): T[] =>
+      Array.isArray(v) ? v : [v]
     return async (ids: OrArray<IDType<JSType>>): Promise<void> =>
       this.knex
         .table(this.table)
@@ -303,8 +321,9 @@ export default class TableLoader<
       },
       { cache: false },
     )
-    return (value: NullToOptional<NonIDProperties<JSType>>) =>
-      loader.load(this.toDB(value))
+    return rethrowWrap((value: NullToOptional<NonIDProperties<JSType>>) =>
+      loader.load(this.toDB(value)),
+    )
   }
 
   /**
