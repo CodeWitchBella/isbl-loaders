@@ -21,6 +21,18 @@ type NonIDProperties<T> = PickExcept<T, 'id'>
 type OrArray<T> = T | T[]
 type IDType<JSType> = JSType extends { id: any } ? JSType['id'] : never
 
+type NullableProperties<T> = {
+  [K in keyof T]: T[K] extends null ? never : K
+}[keyof T]
+type NonNullableProperties<T> = {
+  [K in keyof T]: T[K] extends null ? never : K
+}[keyof T]
+
+type NullToOptional<T> = {
+  [k in keyof Pick<T, NullableProperties<T>>]?: T[k]
+} &
+  { [k in keyof Pick<T, NonNullableProperties<T>>]?: T[k] }
+
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
   arr.findIndex(a => a === el) === i
 
@@ -246,7 +258,10 @@ export default class TableLoader<
    * Inserts element into database and clears cache. Returns inserted element
    */
   insert() {
-    const loader = new DataLoader<NonIDProperties<JSType>, JSType>(
+    const loader = new DataLoader<
+      NullToOptional<NonIDProperties<JSType>>,
+      JSType
+    >(
       async values => {
         const q = this.knex.table(this.table).insert(values)
         const returning: any[] = (await this.knex.raw(
