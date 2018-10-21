@@ -242,7 +242,9 @@ export default class TableLoader<
    */
   byId() {
     // this any is needed because specifying JSType extends { id: number } did not work
-    return this.byFieldValueSingle('id' as any)
+    return this.byFieldValueSingle('id' as any) as (
+      a: JSType extends { id: any } ? JSType['id'] : never,
+    ) => Promise<JSType>
   }
 
   /**
