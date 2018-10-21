@@ -19,6 +19,8 @@ function convertType(type: string) {
     boolean: 'boolean',
     'double precision': 'number',
     bigint: 'string',
+    numeric: 'string',
+    json: 'any',
   } as { [key: string]: string })[type]
   if (!ret) {
     throw new Error(`Unknown type ${type}`)
@@ -56,9 +58,11 @@ function defForTable(table: string, columns: any, elementTypes: any[]) {
 export const generateTypedefs = async ({
   knex,
   output,
+  filterTables = () => true,
 }: {
   knex: Knex
   output: string
+  filterTables?: (table: string) => boolean
 }) => {
   const columns = await knex('information_schema.columns').where(
     'table_schema',
@@ -75,6 +79,7 @@ export const generateTypedefs = async ({
     tableMap[col.table_name].push(col)
   }
   const tables = Object.entries(tableMap)
+    .filter(([t]) => filterTables(t))
     .map(([t, c]) => ({ table: t, cols: c }))
     .sort((a, b) => a.table.localeCompare(b.table))
   let types =
