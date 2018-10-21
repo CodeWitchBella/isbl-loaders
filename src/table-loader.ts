@@ -303,7 +303,8 @@ export default class TableLoader<
       },
       { cache: false },
     )
-    return (value: NonIDProperties<JSType>) => loader.load(this.toDB(value))
+    return (value: NullToOptional<NonIDProperties<JSType>>) =>
+      loader.load(this.toDB(value))
   }
 
   /**
