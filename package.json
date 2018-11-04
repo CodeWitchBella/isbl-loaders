@@ -1,6 +1,6 @@
 {
   "name": "@s-isabella/loaders",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Query and update database in sane way with typescript checking",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -18,7 +18,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@s-isabella/ts-utils": "^0.1.1",
+    "@s-isabella/ts-utils": "^0.1.2",
     "@types/knex": "^0.14.26",
     "@types/lodash.camelcase": "^4.3.4",
     "@types/lodash.isequalwith": "^4.4.4",
