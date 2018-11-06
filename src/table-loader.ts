@@ -334,13 +334,13 @@ export default class TableLoader<
   updateWhere() {
     return async (
       value: Partial<NonIDProperties<JSType>>,
-      where: number[] | number,
+      where: IDType<JSType>[] | IDType<JSType>,
     ): Promise<void> => {
       let q = this.knex.table(this.table).update(this.toDB(value))
-      if (typeof where === 'number') {
-        q = q.where('id', where)
+      if (Array.isArray(where)) {
+        q = q.whereIn('id', where.map(id => this.toDB({ id }).id))
       } else {
-        q = q.whereIn('id', where)
+        q = q.where('id', this.toDB({ id: where }).id)
       }
       await q
 
