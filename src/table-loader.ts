@@ -17,19 +17,6 @@ function fieldToDB(field: string) {
   return snakeCase(field)
 }
 
-function rethrowWrap<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-  return (async (...args: any[]) => {
-    try {
-      return await fn(...args)
-    } catch (e) {
-      if ('message' in e) {
-        throw new Error(e.message)
-      }
-      throw e
-    }
-  }) as any
-}
-
 type NonIDProperties<T> = PickExcept<T, 'id'>
 type OrArray<T> = T | T[]
 type IDType<JSType> = JSType extends { id: any } ? JSType['id'] : never
@@ -171,9 +158,7 @@ export default class TableLoader<
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return rethrowWrap((a: Key) =>
-      loader.load(a).then(v => v.map(el => this.fromDB(el))),
-    )
+    return (a: Key) => loader.load(a).then(v => v.map(el => this.fromDB(el)))
   }
 
   /**
@@ -231,9 +216,7 @@ export default class TableLoader<
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return rethrowWrap((v1: JSType[FieldA], v2: JSType[FieldB]) =>
-      loader.load([v1, v2]),
-    )
+    return (v1: JSType[FieldA], v2: JSType[FieldB]) => loader.load([v1, v2])
   }
 
   /**
@@ -323,9 +306,8 @@ export default class TableLoader<
       },
       { cache: false },
     )
-    return rethrowWrap((value: NullToOptional<NonIDProperties<JSType>>) =>
-      loader.load(this.toDB(value)),
-    )
+    return (value: NullToOptional<NonIDProperties<JSType>>) =>
+      loader.load(this.toDB(value))
   }
 
   /**
