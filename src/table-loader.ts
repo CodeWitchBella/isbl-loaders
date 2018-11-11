@@ -139,8 +139,6 @@ export default class TableLoader<
     field: Field,
   ) {
     const loader = new DataLoader<Key, JSType[]>(async ids => {
-      const dbField = fieldToDB(field as any)
-      const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
       const rows = await this.query(
         q =>
           q
@@ -151,14 +149,16 @@ export default class TableLoader<
             .select(),
         { convert: false },
       )
-      return ids
-        .map(valueToDB)
-        .map(id => rows.filter((x: any) => x[dbField] === id) || [])
+      return ids.map(id => rows.filter((x: any) => x[dbField] === id) || [])
     })
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (a: Key) => loader.load(a).then(v => v.map(el => this.fromDB(el)))
+
+    const dbField = fieldToDB(field as any)
+    const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
+    return (a: Key) =>
+      loader.load(valueToDB(a)).then(v => v.map(el => this.fromDB(el)))
   }
 
   /**
