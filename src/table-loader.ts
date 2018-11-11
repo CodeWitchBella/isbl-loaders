@@ -203,7 +203,7 @@ export default class TableLoader<
               )} and ${JSON.stringify(b)} on table ${this.table}`,
             )
           }
-          return rows[0] || null
+          return this.fromDB(rows[0]) || null
         }),
       ),
     )
