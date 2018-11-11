@@ -138,15 +138,9 @@ export default class TableLoader<
   byFieldValueMultiple<Key extends JSType[Field], Field extends keyof JSType>(
     field: Field,
   ) {
-    const loader = new DataLoader<Key, JSType[]>(async ids => {
+    const loader = new DataLoader<any, JSType[]>(async ids => {
       const rows = await this.query(
-        q =>
-          q
-            .whereIn(dbField, ids
-              .filter(unique)
-              .map(valueToDB)
-              .filter(unique) as any)
-            .select(),
+        q => q.whereIn(dbField, ids.filter(unique) as any).select(),
         { convert: false },
       )
       return ids.map(id => rows.filter((x: any) => x[dbField] === id) || [])
