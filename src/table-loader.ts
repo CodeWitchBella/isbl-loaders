@@ -203,14 +203,15 @@ export default class TableLoader<
               )} and ${JSON.stringify(b)} on table ${this.table}`,
             )
           }
-          return this.fromDB(rows[0]) || null
+          return rows[0] || null
         }),
       ),
     )
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (v1: JSType[FieldA], v2: JSType[FieldB]) => loader.load([v1, v2])
+    return (v1: JSType[FieldA], v2: JSType[FieldB]) =>
+      loader.load([v1, v2]).then(v => (v ? this.fromDB(v) : v))
   }
 
   /**
