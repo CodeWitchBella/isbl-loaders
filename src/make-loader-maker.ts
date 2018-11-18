@@ -55,8 +55,8 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
           Table
         >
   }
-  onInsert?: (id: IDType<Table>[]) => void
-  onUpdate?: (id: IDType<Table>[]) => void
+  onInsert?: (id: IDType<Table>[], args: Args) => void
+  onUpdate?: (id: IDType<Table>[], args: Args) => void
 }) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
@@ -81,13 +81,13 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
     onInsert: (ids: number[]) => {
       if (onInsert)
         setImmediate(() => {
-          onInsert(ids.map(id => ({ type: opts.table, id })))
+          onInsert(ids.map(id => ({ type: opts.table, id })), args)
         })
     },
     onUpdate: (ids: number[]) => {
       if (onUpdate)
         setImmediate(() => {
-          onUpdate(ids.map(id => ({ type: opts.table, id })))
+          onUpdate(ids.map(id => ({ type: opts.table, id })), args)
         })
     },
   } as any)
