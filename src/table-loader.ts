@@ -327,7 +327,7 @@ export default class TableLoader<
       } else if (ids.length > 1) {
         q = q.whereIn('id', ids)
       } else {
-        q = q.where('id', { id: ids[0] })
+        q = q.where('id', ids[0])
       }
       await q
 
