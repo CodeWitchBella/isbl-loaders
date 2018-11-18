@@ -57,6 +57,8 @@ type Options<TableType /* extends { id: number } */, JSType> = {
       ? (t: JSType[key]) => TableType[key]
       : never
   }
+  onInsert: (id: number[]) => void
+  onUpdate: (id: number[]) => void
 }
 
 export default class TableLoader<
@@ -267,6 +269,7 @@ export default class TableLoader<
           q,
         )).rows
         this.clearers.forEach(c => c())
+        this.options.onInsert(returning.map(r => r.id))
 
         /*
          * Returns ret element which matches inEl AND removes it from ret array
@@ -314,14 +317,22 @@ export default class TableLoader<
       where: IDType<JSType>[] | IDType<JSType>,
     ): Promise<void> => {
       let q = this.knex.table(this.table).update(this.toDB(value))
-      if (Array.isArray(where)) {
-        q = q.whereIn('id', where.map(id => this.toDB({ id }).id))
+
+      const ids = (Array.isArray(where) ? where : [where]).map(
+        id => this.toDB({ id }).id,
+      )
+
+      if (ids.length === 0) {
+        // do nothing
+      } else if (ids.length > 1) {
+        q = q.whereIn('id', ids)
       } else {
-        q = q.where('id', this.toDB({ id: where }).id)
+        q = q.where('id', { id: ids[0] })
       }
       await q
 
       this.clearers.forEach(c => c())
+      this.options.onUpdate(ids)
     }
   }
 
@@ -334,11 +345,13 @@ export default class TableLoader<
       id: IDType<JSType>,
       value: Partial<NonIDProperties<JSType>>,
     ): Promise<void> => {
+      const dbId = this.toDB({ id })
       await this.knex
         .table(this.table)
-        .where(this.toDB({ id }))
+        .where(dbId)
         .update(this.toDB(value))
       this.clearers.forEach(c => c())
+      this.options.onUpdate([dbId.id])
     }
   }
 

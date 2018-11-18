@@ -55,6 +55,8 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
           Table
         >
   }
+  onInsert?: (id: IDType<Table>[]) => void
+  onUpdate?: (id: IDType<Table>[]) => void
 }) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
@@ -63,6 +65,7 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
     >,
   ) => T = () => ({} as T),
 ) => (args: Args) => {
+  const { onUpdate, onInsert } = opts
   const converters = mapValues(
     opts.converters,
     c => (c ? c({ table: opts.table }) : null),
@@ -75,6 +78,18 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
     fromDB: mapValues(converters, v => (v ? v.fromDB : null)),
     table: opts.table,
     knex: args.knex,
+    onInsert: (ids: number[]) => {
+      if (onInsert)
+        setImmediate(() => {
+          onInsert(ids.map(id => ({ type: opts.table, id })))
+        })
+    },
+    onUpdate: (ids: number[]) => {
+      if (onUpdate)
+        setImmediate(() => {
+          onUpdate(ids.map(id => ({ type: opts.table, id })))
+        })
+    },
   } as any)
   return Object.assign(loader.initLoader(), definition(loader))
 }
