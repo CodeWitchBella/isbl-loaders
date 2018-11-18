@@ -81,7 +81,7 @@ export const generateTypedefs = async ({
   const tables = Object.entries(tableMap)
     .filter(([t]) => filterTables(t))
     .map(([t, c]) => ({ table: t, cols: c }))
-    .sort((a, b) => a.table.localeCompare(b.table))
+    .sort((a, b) => a.table.localeCompare(b.table, 'en'))
   let types =
     '/* eslint-disable */\n' +
     '// This is automatically generated file. \n' +
