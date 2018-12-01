@@ -2,9 +2,10 @@ import Knex from 'knex'
 import { AllPropertiesExcept, PickExcept } from '@s-isabella/ts-utils'
 import mapValues from 'lodash.mapvalues'
 import TableLoader from './table-loader'
-import { IDType } from './converters/id-converter'
 
 type Args = { knex: Knex }
+
+type IDType<T> = { id: number; type: T }
 
 type JSType<
   TableToTypeMap,
