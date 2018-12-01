@@ -1,9 +1,11 @@
 import DataLoader from 'dataloader'
-import Knex from 'knex'
+import Knex, { QueryBuilder } from 'knex'
 import isEqualWith from 'lodash.isequalwith'
 import snakeCase from 'lodash.snakecase'
 import camelCase from 'lodash.camelcase'
 import { PickExcept } from '@s-isabella/ts-utils'
+
+const production = process.env.NODE_ENV === 'production'
 
 const transformKey = (transformer: (key: string) => string) => (obj: any) => {
   const ret = {} as any
@@ -140,21 +142,73 @@ export default class TableLoader<
   byFieldValueMultiple<Key extends JSType[Field], Field extends keyof JSType>(
     field: Field,
   ) {
-    const loader = new DataLoader<any, JSType[]>(async ids => {
-      const rows = await this.query(
-        q => q.whereIn(dbField, ids.filter(unique) as any).select(),
-        { convert: false },
-      )
-      return ids.map(id => rows.filter((x: any) => x[dbField] === id) || [])
-    })
-    this.clearers.push(() => {
-      loader.clearAll()
-    })
+    const loaders = new Map<
+      Function | undefined,
+      { args: any; f: DataLoader<[any, any], JSType[]> }[]
+    >()
+    const queryList: string[] = []
 
     const dbField = fieldToDB(field as any)
     const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
-    return (a: Key) =>
-      loader.load(valueToDB(a)).then(v => v.map(el => this.fromDB(el)))
+    return <T extends Object | undefined = undefined>(
+      a: Key,
+      b?: {
+        query: (q: QueryBuilder, args: T) => QueryBuilder
+        args: T
+        comparator?: (a: T, b: T) => boolean
+      },
+    ) => {
+      if (!production && b && !loaders.has(b.query)) {
+        const queryString = b.query.toString()
+        if (queryList.some(q => q === queryString)) {
+          console.warn(
+            'Warning: found two query functions with same source code but different reference',
+          )
+          console.warn('This prevents batching - is going to be slow')
+          console.warn('This check is disabled if NODE_ENV is production')
+          console.warn('Offending function')
+          console.warn(queryString)
+        }
+        queryList.push(queryString)
+      }
+
+      const idx = b ? b.query : undefined
+      if (!loaders.has(idx)) loaders.set(idx, [])
+      const list = loaders.get(idx)!
+      let loader = b
+        ? list.find(
+            el =>
+              b.comparator ? b.comparator(el.args, b.args) : el.args === b.args,
+          )
+        : list[0]
+      if (!loader) {
+        loader = {
+          args: b ? b.args : undefined,
+          f: new DataLoader<any, JSType[]>(async ids => {
+            const rows = await this.query(
+              q =>
+                b
+                  ? b
+                      .query(
+                        q.whereIn(dbField, ids.filter(unique) as any),
+                        b.args,
+                      )
+                      .select()
+                  : q.whereIn(dbField, ids.filter(unique) as any).select(),
+              { convert: false },
+            )
+            return ids.map(
+              id => rows.filter((x: any) => x[dbField] === id) || [],
+            )
+          }),
+        }
+        this.clearers.push(() => {
+          loader!.f.clearAll()
+        })
+      }
+
+      return loader.f.load(valueToDB(a)).then(v => v.map(el => this.fromDB(el)))
+    }
   }
 
   /**
