@@ -202,6 +202,7 @@ export default class TableLoader<
             )
           }),
         }
+        list.push(loader)
         this.clearers.push(() => {
           loader!.f.clearAll()
         })
