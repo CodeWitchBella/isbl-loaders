@@ -1,6 +1,6 @@
 {
   "name": "@s-isabella/loaders",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Query and update database in sane way with typescript checking",
   "main": "build/index.js",
   "types": "build/index.d.ts",
