@@ -67,9 +67,8 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
   ) => T = () => ({} as T),
 ) => (args: Args) => {
   const { onUpdate, onInsert } = opts
-  const converters = mapValues(
-    opts.converters,
-    c => (c ? c({ table: opts.table }) : null),
+  const converters = mapValues(opts.converters, c =>
+    c ? c({ table: opts.table }) : null,
   )
   const loader = new TableLoader<
     TableToTypeMap[Table],

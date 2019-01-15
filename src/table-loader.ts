@@ -101,7 +101,17 @@ export default class TableLoader<
     if (this.options.toDB) {
       for (const [key, resolver] of Object.entries(this.options.toDB)) {
         if (key in object && resolver) {
-          r[key] = resolver(object[key])
+          try {
+            r[key] = resolver(object[key])
+          } catch (e) {
+            const err = new Error(
+              `Error occured while converting field ${key} of table ${
+                this.table
+              } to db`,
+            )
+            err.stack += `\nOriginal error:\n${e.stack}`
+            throw err
+          }
         }
       }
     }
@@ -176,9 +186,8 @@ export default class TableLoader<
       if (!loaders.has(idx)) loaders.set(idx, [])
       const list = loaders.get(idx)!
       let loader = b
-        ? list.find(
-            el =>
-              b.comparator ? b.comparator(el.args, b.args) : el.args === b.args,
+        ? list.find(el =>
+            b.comparator ? b.comparator(el.args, b.args) : el.args === b.args,
           )
         : list[0]
       if (!loader) {
