@@ -96,11 +96,16 @@ export default class TableLoader<
     return r
   }
 
-  private toDB(object: any) {
+  private toDB(
+    object: any,
+    { ignoreUndefined = false }: { ignoreUndefined?: boolean } = {},
+  ) {
     const r = { ...object }
     if (this.options.toDB) {
       for (const [key, resolver] of Object.entries(this.options.toDB)) {
         if (key in object && resolver) {
+          if (ignoreUndefined && object[key] === undefined) continue
+
           try {
             r[key] = resolver(object[key])
           } catch (e) {
@@ -369,7 +374,7 @@ export default class TableLoader<
       { cache: false },
     )
     return (value: NullToOptional<NonIDProperties<JSType>>) =>
-      loader.load(this.toDB(value))
+      loader.load(this.toDB(value, { ignoreUndefined: true }))
   }
 
   /**
