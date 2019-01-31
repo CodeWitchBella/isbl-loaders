@@ -438,7 +438,7 @@ export default class TableLoader<
   count() {
     return async (doQuery = (a: Knex.QueryBuilder) => a) =>
       doQuery(this.knex.table(this.table).count()).then(
-        (v: [{ count: number }]) => v[0].count,
+        (v: [{ count: string }]) => Number.parseInt(v[0].count, 10),
       )
   }
 
