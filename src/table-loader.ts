@@ -433,6 +433,16 @@ export default class TableLoader<
   }
 
   /**
+   * Returns number of records matching q
+   */
+  count() {
+    return async (doQuery = (a: Knex.QueryBuilder) => a) =>
+      doQuery(this.knex.table(this.table).count()).then(
+        (v: [{ count: number }]) => v[0].count,
+      )
+  }
+
+  /**
    * Runs select query and transforms result to JSType.
    * Does NOT have any performance benefits.
    */
@@ -452,6 +462,7 @@ export default class TableLoader<
       raw: this.raw(),
       all: this.all(),
       delete: this.delete(),
+      count: this.count(),
     }
   }
 }
