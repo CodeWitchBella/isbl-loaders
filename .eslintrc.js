@@ -1,1 +1,1 @@
-module.exports = require('@s-isabella/scripts-backend').eslintrc()
+module.exports = require('@codewitchbella/scripts-backend').eslintrc()

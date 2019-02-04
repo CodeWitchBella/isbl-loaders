@@ -1,5 +1,5 @@
 import Knex from 'knex'
-import { AllPropertiesExcept, PickExcept } from '@s-isabella/ts-utils'
+import { AllPropertiesExcept, PickExcept } from '@codewitchbella/ts-utils'
 import mapValues from 'lodash.mapvalues'
 import TableLoader from './table-loader'
 

@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/@s-isabella/scripts-backend/tsconfig.json",
+  "extends": "./node_modules/@codewitchbella/scripts-backend/tsconfig.json",
   "include": [
     "src/**/*"
   ]

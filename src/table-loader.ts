@@ -3,7 +3,7 @@ import Knex, { QueryBuilder } from 'knex'
 import isEqualWith from 'lodash.isequalwith'
 import snakeCase from 'lodash.snakecase'
 import camelCase from 'lodash.camelcase'
-import { PickExcept } from '@s-isabella/ts-utils'
+import { PickExcept } from '@codewitchbella/ts-utils'
 
 const production = process.env.NODE_ENV === 'production'
 
