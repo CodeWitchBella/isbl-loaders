@@ -54,6 +54,11 @@ async function readFile(output: string) {
   }
 }
 
+function referencesComment(ref: { table: string; column: string } | null) {
+  if (!ref) return ''
+  return ` // references ${ref.table}.${ref.column}`
+}
+
 export const generateTypedefs = async ({
   knex,
   output,
@@ -74,7 +79,12 @@ export const generateTypedefs = async ({
     '// Do not edit, it WILL be overwritten.\n\n'
   for (const { name, columns } of tables) {
     types += `interface ${name} {\n${columns
-      .map(c => `  ${transformKey(c.name)}: ${typeForColumn(c)}`)
+      .map(
+        c =>
+          `  ${transformKey(c.name)}: ${typeForColumn(c)}${referencesComment(
+            c.references,
+          )}`,
+      )
       .join('\n')}\n}\n\n`
   }
   types += 'export type TableToTypeMap = {'
