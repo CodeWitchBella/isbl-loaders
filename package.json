@@ -2,8 +2,11 @@
   "name": "@s-isabella/loaders",
   "version": "0.2.1",
   "description": "Query and update database in sane way with typescript checking",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "dist/index.js",
+  "umd:main": "dist/inex.umd.js",
+  "module": "dist/index.mjs",
+  "source": "src/index.ts",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://gitlab.com/isabella.skorepova/isa-scripts.git"
@@ -18,12 +21,13 @@
     "access": "public"
   },
   "dependencies": {
+    "@codewitchbella/postgres-schema": "^0.0.0",
     "@s-isabella/ts-utils": "^0.1.6",
-    "@types/knex": "^0.15.1",
     "@types/lodash.camelcase": "^4.3.4",
     "@types/lodash.isequalwith": "^4.4.4",
     "@types/lodash.mapvalues": "^4.6.4",
     "@types/lodash.snakecase": "^4.1.4",
+    "@types/node": "^10.12.21",
     "dataloader": "^1.4.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.isequalwith": "^4.4.0",
@@ -31,13 +35,16 @@
     "lodash.snakecase": "^4.1.1"
   },
   "peerDependencies": {
-    "knex": "^0.15.2"
+    "knex": "^0.16.3"
   },
   "devDependencies": {
-    "@s-isabella/scripts-backend": "^0.1.4"
+    "@s-isabella/scripts-backend": "^0.1.4",
+    "knex": "^0.16.3",
+    "microbundle": "^0.9.0",
+    "pg": "^7.8.0"
   },
   "scripts": {
-    "prepare": "isa-scripts-backend build-typedefs",
+    "prepare": "microbundle --target node --external util,fs",
     "check": "isa-scripts-backend check",
     "lint": "isa-scripts-backend lint"
   }

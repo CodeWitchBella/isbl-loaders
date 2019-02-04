@@ -3,3 +3,5 @@ tsconfig.json
 package-lock.json
 .eslintrc.js
 .eslintcache
+.rts2_cache_*
+test-output.ts
