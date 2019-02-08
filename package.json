@@ -9,14 +9,14 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.com/isabella.skorepova/isa-scripts.git"
+    "url": "git+https://gitlab.com/codewitchbella/isa-scripts.git"
   },
   "author": "Isabella Skořepová <isabella@skorepova.info>",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.com/isabella.skorepova/isa-scripts/issues"
+    "url": "https://gitlab.com/codewitchbella/isa-scripts/issues"
   },
-  "homepage": "https://gitlab.com/isabella.skorepova/isa-scripts#readme",
+  "homepage": "https://gitlab.com/codewitchbella/isa-scripts#readme",
   "publishConfig": {
     "access": "public"
   },
@@ -27,7 +27,7 @@
     "@types/lodash.isequalwith": "^4.4.4",
     "@types/lodash.mapvalues": "^4.6.4",
     "@types/lodash.snakecase": "^4.1.4",
-    "@types/node": "^10.12.21",
+    "@types/node": "^10.12.23",
     "dataloader": "^1.4.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.isequalwith": "^4.4.0",
@@ -45,7 +45,7 @@
   },
   "scripts": {
     "prepare": "microbundle --target node --external util,fs",
-    "check": "isa-scripts-backend check",
-    "lint": "isa-scripts-backend lint"
+    "check": "cwb-scripts-backend check",
+    "lint": "cwb-scripts-backend lint"
   }
 }
