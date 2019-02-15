@@ -307,7 +307,9 @@ export default class TableLoader<
         .table(this.table)
         .delete()
         .whereIn('id', toArray(ids).map(id => this.toDB({ id }).id))
-        .then(() => {})
+        .then(() => {
+          this.clearers.forEach(c => c())
+        })
   }
 
   all() {
