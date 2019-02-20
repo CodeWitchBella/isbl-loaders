@@ -3,8 +3,6 @@
   "version": "0.2.4",
   "description": "Query and update database in sane way with typescript checking",
   "main": "dist/index.js",
-  "umd:main": "dist/inex.umd.js",
-  "module": "dist/index.mjs",
   "source": "src/index.ts",
   "types": "dist/index.d.ts",
   "repository": {
@@ -40,7 +38,7 @@
   "devDependencies": {
     "@codewitchbella/scripts-backend": "^0.2.0",
     "knex": "^0.16.3",
-    "@codewitchbella/microbundle": "^0.9.2",
+    "@codewitchbella/microbundle": "^0.9.3",
     "pg": "^7.8.0"
   },
   "scripts": {
