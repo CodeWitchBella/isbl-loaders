@@ -365,15 +365,17 @@ export default class TableLoader<
             .then(v => v.rows)
         }
         try {
-          let returning: any[] = await insert(
-            values.filter(v => Object.keys(v).length > 0),
-          )
+          const batchedValues = values.filter(v => Object.keys(v).length > 0)
+          let returning: any[] =
+            batchedValues.length > 0 ? await insert(batchedValues) : []
           this.clearers.forEach(c => c())
           this.options.onInsert(returning.map(r => r.id))
 
           returning = returning.concat(
             await Promise.all(
-              values.filter(v => Object.keys(v).length === 0).map(insert),
+              values
+                .filter(v => Object.keys(v).length === 0)
+                .map(v => insert(v).then(l => l[0])),
             ),
           )
 
