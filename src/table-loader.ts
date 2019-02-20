@@ -330,53 +330,64 @@ export default class TableLoader<
    */
   insert() {
     const loader = new DataLoader<
-      NullToOptional<NonIDProperties<JSType>>,
+      {
+        value: NullToOptional<NonIDProperties<JSType>>
+        getError: (message: string) => Error
+      },
       JSType
     >(
-      async values => {
-        const q = this.knex.table(this.table).insert(values)
-        const returning: any[] = (await this.knex.raw(
-          '? on conflict do nothing returning *',
-          q,
-        )).rows
-        this.clearers.forEach(c => c())
-        this.options.onInsert(returning.map(r => r.id))
+      async list => {
+        const values = list.map(v => v.value)
+        try {
+          const q = this.knex.table(this.table).insert(values)
+          const returning: any[] = (await this.knex.raw(
+            '? on conflict do nothing returning *',
+            q,
+          )).rows
+          this.clearers.forEach(c => c())
+          this.options.onInsert(returning.map(r => r.id))
 
-        /*
-         * Returns ret element which matches inEl AND removes it from ret array
-         * kind of like splice
-         */
-        const inToReturning = (inEl: any) => {
-          const index = returning.findIndex(el => {
-            // the undefined comparison is here because of default values
-            const weakCompare = (a: any, b: any) =>
-              // eslint-disable-next-line eqeqeq
-              a === undefined || a == b ? true : undefined
-            for (const key of Object.keys(inEl)) {
-              if (!isEqualWith(inEl[key], (el as any)[key], weakCompare))
-                return false
-            }
-            return true
-          })
-          return index >= 0 ? returning.splice(index, 1)[0] : null
-        }
+          /*
+           * Returns ret element which matches inEl AND removes it from ret array
+           * kind of like splice
+           */
+          const inToReturning = (inEl: any) => {
+            const index = returning.findIndex(el => {
+              // the undefined comparison is here because of default values
+              const weakCompare = (a: any, b: any) =>
+                // eslint-disable-next-line eqeqeq
+                a === undefined || a == b ? true : undefined
+              for (const key of Object.keys(inEl)) {
+                if (!isEqualWith(inEl[key], (el as any)[key], weakCompare))
+                  return false
+              }
+              return true
+            })
+            return index >= 0 ? returning.splice(index, 1)[0] : null
+          }
 
-        const ret = values
-          .map(inToReturning)
-          .map(v => (v ? this.fromDB(v) : new Error('Insert failed')))
-        if (returning.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log({ values, returning })
-          throw new Error(
-            'Returning contains elements. Something went horribly wrong!',
-          )
+          const ret = values
+            .map(inToReturning)
+            .map(v => (v ? this.fromDB(v) : new Error('Insert failed')))
+          if (returning.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log({ values, returning })
+            throw new Error(
+              'Returning contains elements. Something went horribly wrong!',
+            )
+          }
+          return ret
+        } catch (e) {
+          return list.map(v => v.getError(e.message))
         }
-        return ret
       },
       { cache: false },
     )
     return (value: NullToOptional<NonIDProperties<JSType>>) =>
-      loader.load(this.toDB(value, { ignoreUndefined: true }))
+      loader.load({
+        value: this.toDB(value, { ignoreUndefined: true }),
+        getError: (message: string) => new Error(message),
+      })
   }
 
   /**
