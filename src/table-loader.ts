@@ -338,14 +338,24 @@ export default class TableLoader<
     >(
       async list => {
         const values = list.map(v => v.value)
+        const insert = (v: any) => {
+          const q = this.knex.table(this.table).insert(v)
+          return this.knex
+            .raw('? on conflict do nothing returning *', q)
+            .then(v => v.rows)
+        }
         try {
-          const q = this.knex.table(this.table).insert(values)
-          const returning: any[] = (await this.knex.raw(
-            '? on conflict do nothing returning *',
-            q,
-          )).rows
+          let returning: any[] = await insert(
+            values.filter(v => Object.keys(v).length > 0),
+          )
           this.clearers.forEach(c => c())
           this.options.onInsert(returning.map(r => r.id))
+
+          returning = returning.concat(
+            await Promise.all(
+              values.filter(v => Object.keys(v).length === 0).map(insert),
+            ),
+          )
 
           /*
            * Returns ret element which matches inEl AND removes it from ret array
