@@ -63,6 +63,26 @@ type Options<TableType /* extends { id: number } */, JSType> = {
   onUpdate: (id: number[]) => void
 }
 
+function captureStack() {
+  return production ? null : new Error()
+}
+
+function getError(captured: ReturnType<typeof captureStack>) {
+  return (message: string) => {
+    const err = new Error(message)
+    if (captured && err.stack && captured.stack) {
+      err.stack =
+        err.stack.split('\n')[0] +
+        '\n' +
+        captured.stack
+          .split('\n')
+          .slice(1)
+          .join('\n')
+    }
+    return err
+  }
+}
+
 export default class TableLoader<
   TableType /* extends { id: number }, */,
   JSType /* extends { id: number }*/
@@ -396,7 +416,7 @@ export default class TableLoader<
     return (value: NullToOptional<NonIDProperties<JSType>>) =>
       loader.load({
         value: this.toDB(value, { ignoreUndefined: true }),
-        getError: (message: string) => new Error(message),
+        getError: getError(captureStack()),
       })
   }
 
