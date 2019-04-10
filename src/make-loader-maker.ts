@@ -65,6 +65,13 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
       JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>
     >,
   ) => T = () => ({} as T),
+  {
+    filter,
+  }: {
+    filter?: (
+      v: JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>,
+    ) => boolean
+  } = {},
 ) => (args: Args) => {
   const { onUpdate, onInsert } = opts
   const converters = mapValues(opts.converters, c =>
@@ -74,10 +81,11 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
     TableToTypeMap[Table],
     JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>
   >({
-    toDB: mapValues(converters, v => (v ? v.toDB : null)),
-    fromDB: mapValues(converters, v => (v ? v.fromDB : null)),
-    table: opts.table,
+    toDB: mapValues(converters, v => (v ? v.toDB : null)) as any,
+    fromDB: mapValues(converters, v => (v ? v.fromDB : null)) as any,
+    table: opts.table as string,
     knex: args.knex,
+    filter,
     onInsert: (ids: number[]) => {
       if (onInsert)
         setImmediate(() => {
@@ -90,6 +98,6 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
           onUpdate(ids.map(id => ({ type: opts.table, id })), args)
         })
     },
-  } as any)
+  })
   return Object.assign(loader.initLoader(), definition(loader))
 }

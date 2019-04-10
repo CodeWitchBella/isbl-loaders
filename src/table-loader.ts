@@ -3,7 +3,7 @@ import Knex, { QueryBuilder } from 'knex'
 import isEqualWith from 'lodash.isequalwith'
 import snakeCase from 'lodash.snakecase'
 import camelCase from 'lodash.camelcase'
-import { PickExcept } from '@codewitchbella/ts-utils'
+import { PickExcept, notNull } from '@codewitchbella/ts-utils'
 
 const production = process.env.NODE_ENV === 'production'
 
@@ -61,6 +61,7 @@ type Options<TableType /* extends { id: number } */, JSType> = {
   }
   onInsert: (id: number[]) => void
   onUpdate: (id: number[]) => void
+  filter?: (v: JSType) => boolean
 }
 
 function captureStack() {
@@ -102,7 +103,7 @@ export default class TableLoader<
     this.clearers = []
   }
 
-  private fromDB(o: any): JSType {
+  private fromDB(o: any, { skipFilter = false } = {}): JSType | null {
     const object = transformKey(camelCase)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
@@ -112,6 +113,9 @@ export default class TableLoader<
         }
       }
     }
+
+    if (!skipFilter && this.options.filter && !this.options.filter(r))
+      return null
 
     return r
   }
@@ -165,7 +169,7 @@ export default class TableLoader<
     const res: any[] = await doQuery(this.knex.table(this.table).select())
     const filtered = res.filter(a => a)
     if (!convert) return filtered
-    return filtered.map(a => this.fromDB(a))
+    return filtered.map(a => this.fromDB(a)).filter(notNull)
   }
 
   /**
@@ -242,7 +246,9 @@ export default class TableLoader<
         })
       }
 
-      return loader.f.load(valueToDB(a)).then(v => v.map(el => this.fromDB(el)))
+      return loader.f
+        .load(valueToDB(a))
+        .then(v => v.map(el => this.fromDB(el)).filter(notNull))
     }
   }
 
@@ -342,7 +348,7 @@ export default class TableLoader<
         .table(this.table)
         .select()
         .orderBy(fieldToDB(orderBy as any))
-        .then(l => l.map((a: any) => this.fromDB(a as any))) as any
+        .then(l => l.map((a: any) => this.fromDB(a)).filter(notNull)) as any
   }
 
   /**
@@ -400,7 +406,11 @@ export default class TableLoader<
 
           const ret = values
             .map(inToReturning)
-            .map(v => (v ? this.fromDB(v) : new Error('Insert failed')))
+            .map(v =>
+              v
+                ? this.fromDB(v, { skipFilter: true })!
+                : new Error('Insert failed'),
+            )
           if (returning.length > 0) {
             // eslint-disable-next-line no-console
             console.log({ values, returning })
@@ -474,7 +484,9 @@ export default class TableLoader<
    */
   raw(): RawQuery<JSType> {
     return async doQuery =>
-      this.query(doQuery).then(v => v.map(el => this.fromDB(el)))
+      this.query(doQuery).then(v =>
+        v.map(el => this.fromDB(el)).filter(notNull),
+      )
   }
 
   /**
@@ -492,7 +504,10 @@ export default class TableLoader<
    * Does NOT have any performance benefits.
    */
   preparedRaw(doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder) {
-    return () => this.query(doQuery).then(v => v.map(el => this.fromDB(el)))
+    return () =>
+      this.query(doQuery).then(v =>
+        v.map(el => this.fromDB(el)).filter(notNull),
+      )
   }
 
   /**
