@@ -3,7 +3,9 @@ import { AllPropertiesExcept, PickExcept } from '@codewitchbella/ts-utils'
 import mapValues from 'lodash.mapvalues'
 import TableLoader from './table-loader'
 
-type Args = { knex: Knex }
+type Args<FilterArg> = FilterArg extends undefined
+  ? { knex: Knex; filterArg?: FilterArg }
+  : { knex: Knex; filterArg: FilterArg }
 
 type IDType<T> = { id: number; type: T }
 
@@ -34,10 +36,10 @@ type JSTypeWithID<JSType, TableName> = PickExcept<JSType, 'id'> & {
   id: IDType<TableName>
 }
 
-export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
-  Table extends keyof TableToTypeMap,
-  JSTypePatch extends {} = {}
->(opts: {
+export const makeLoaderMaker = <
+  TableToTypeMap extends {},
+  FilterArg = undefined
+>() => <Table extends keyof TableToTypeMap, JSTypePatch extends {} = {}>(opts: {
   table: Table
   converters?: {
     [key in keyof TableToTypeMap[Table]]?: key extends keyof JSType<
@@ -56,8 +58,8 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
           Table
         >
   }
-  onInsert?: (id: IDType<Table>[], args: Args) => void
-  onUpdate?: (id: IDType<Table>[], args: Args) => void
+  onInsert?: (id: IDType<Table>[], args: Args<FilterArg>) => void
+  onUpdate?: (id: IDType<Table>[], args: Args<FilterArg>) => void
 }) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
@@ -70,9 +72,10 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
   }: {
     filter?: (
       v: JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>,
+      a: FilterArg,
     ) => boolean
   } = {},
-) => (args: Args) => {
+) => (args: Args<FilterArg>) => {
   const { onUpdate, onInsert } = opts
   const converters = mapValues(opts.converters, c =>
     c ? c({ table: opts.table }) : null,
@@ -85,7 +88,7 @@ export const makeLoaderMaker = <TableToTypeMap extends {}>() => <
     fromDB: mapValues(converters, v => (v ? v.fromDB : null)) as any,
     table: opts.table as string,
     knex: args.knex,
-    filter,
+    filter: filter ? v => filter(v, args.filterArg!) : undefined,
     onInsert: (ids: number[]) => {
       if (onInsert)
         setImmediate(() => {
