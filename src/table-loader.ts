@@ -523,7 +523,7 @@ export default class TableLoader<
       all: this.all(),
       delete: this.delete(),
       count: this.count(),
-      convertToDb: (v: JSType) => this.toDB(v),
+      convertToDb: (v: Partial<JSType>) => this.toDB(v),
     }
   }
 }
