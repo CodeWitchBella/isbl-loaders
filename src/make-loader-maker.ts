@@ -9,19 +9,11 @@ type Args<FilterArg> = FilterArg extends undefined
 
 type IDType<T> = { id: number; type: T }
 
-type JSType<
-  TableToTypeMap,
-  Table extends keyof TableToTypeMap,
-  JSTypePatch extends {}
-> = Pick<
-  TableToTypeMap[Table],
-  AllPropertiesExcept<TableToTypeMap[Table], keyof JSTypePatch>
-> &
-  JSTypePatch
-
 export type Converter<Table, JS> = {
   fromDB: (v: Table) => JS
   toDB: (v: JS) => Table
+  jsType: string
+  imports?: string[]
 }
 
 export type ConverterInfo<T> = {
@@ -36,20 +28,20 @@ type JSTypeWithID<JSType, TableName> = PickExcept<JSType, 'id'> & {
   id: IDType<TableName>
 }
 
+export const convertersSymbol = Symbol('converters')
+export const tableLoaderSymbol = Symbol('tableLoader')
+
 export const makeLoaderMaker = <
   TableToTypeMap extends {},
+  TableToJsTypeMap extends { [tab in keyof TableToJsTypeMap]: any },
   FilterArg = undefined
->() => <Table extends keyof TableToTypeMap, JSTypePatch extends {} = {}>(opts: {
+>() => <Table extends keyof TableToTypeMap>(opts: {
   table: Table
   converters?: {
-    [key in keyof TableToTypeMap[Table]]?: key extends keyof JSType<
-      TableToTypeMap,
-      Table,
-      JSTypePatch
-    >
+    [key in keyof TableToTypeMap[Table]]?: key extends keyof TableToJsTypeMap[Table]
       ? ConverterFactory<
           TableToTypeMap[Table][key],
-          JSType<TableToTypeMap, Table, JSTypePatch>[key],
+          TableToJsTypeMap[Table][key],
           Table
         >
       : ConverterFactory<
@@ -64,14 +56,15 @@ export const makeLoaderMaker = <
   definition: (
     tableLoader: TableLoader<
       TableToTypeMap[Table],
-      JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>
+      TableToJsTypeMap[Table],
+      Table
     >,
   ) => T = () => ({} as T),
   {
     filter,
   }: {
     filter?: (
-      v: JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>,
+      v: JSTypeWithID<TableToJsTypeMap[Table], Table>,
       a: FilterArg,
     ) => boolean
   } = {},
@@ -82,7 +75,8 @@ export const makeLoaderMaker = <
   )
   const loader = new TableLoader<
     TableToTypeMap[Table],
-    JSTypeWithID<JSType<TableToTypeMap, Table, JSTypePatch>, Table>
+    TableToJsTypeMap[Table],
+    Table
   >({
     toDB: mapValues(converters, v => (v ? v.toDB : null)) as any,
     fromDB: mapValues(converters, v => (v ? v.fromDB : null)) as any,
@@ -102,5 +96,10 @@ export const makeLoaderMaker = <
         })
     },
   })
-  return Object.assign(loader.initLoader(), definition(loader))
+  const ret = Object.assign(loader.initLoader(), definition(loader))
+
+  return Object.assign(ret, {
+    [convertersSymbol]: converters,
+    [tableLoaderSymbol]: loader,
+  }) as typeof ret
 }

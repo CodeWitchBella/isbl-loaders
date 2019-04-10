@@ -21,7 +21,7 @@ function fieldToDB(field: string) {
 
 type NonIDProperties<T> = PickExcept<T, 'id'>
 type OrArray<T> = T | T[]
-type IDType<JSType> = JSType extends { id: any } ? JSType['id'] : never
+type IDType<Table> = { id: number; type: Table }
 
 type NullableProperties<T> = {
   [K in keyof T]: T[K] extends null ? never : K
@@ -84,10 +84,7 @@ function getError(captured: ReturnType<typeof captureStack>) {
   }
 }
 
-export default class TableLoader<
-  TableType /* extends { id: number }, */,
-  JSType /* extends { id: number }*/
-> {
+export default class TableLoader<TableType, JSType, Table> {
   private table: string
 
   private knex: Knex
@@ -317,8 +314,8 @@ export default class TableLoader<
    */
   byId() {
     // this any is needed because specifying JSType extends { id: number } did not work
-    return this.byFieldValueSingle('id' as any) as (
-      a: JSType extends { id: any } ? JSType['id'] : never,
+    return (this.byFieldValueSingle('id' as any) as any) as (
+      a: IDType<Table>,
     ) => Promise<JSType>
   }
 
@@ -328,7 +325,7 @@ export default class TableLoader<
   delete() {
     const toArray = <T extends {}>(v: OrArray<T>): T[] =>
       Array.isArray(v) ? v : [v]
-    return async (ids: OrArray<IDType<JSType>>): Promise<void> =>
+    return async (ids: OrArray<IDType<Table>>): Promise<void> =>
       this.knex
         .table(this.table)
         .delete()
@@ -438,7 +435,7 @@ export default class TableLoader<
   updateWhere() {
     return async (
       value: Partial<NonIDProperties<JSType>>,
-      where: IDType<JSType>[] | IDType<JSType>,
+      where: IDType<Table>[] | IDType<Table>,
     ): Promise<void> => {
       let q = this.knex.table(this.table).update(this.toDB(value))
 
@@ -466,7 +463,7 @@ export default class TableLoader<
    */
   update() {
     return async (
-      id: IDType<JSType>,
+      id: IDType<Table>,
       value: Partial<NonIDProperties<JSType>>,
     ): Promise<void> => {
       const dbId = this.toDB({ id })
