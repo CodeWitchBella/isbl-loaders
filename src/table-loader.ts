@@ -31,9 +31,7 @@ export type InitLoader<
   Table
 > = {
   byId: (id: IDType<Table>) => Promise<Defs['js']>
-  insert: (
-    v: NullToOptional<PickExcept<Defs['js'], 'id'>>,
-  ) => Promise<Defs['js']>
+  insert: (v: Defs['insert']) => Promise<Defs['js']>
   update: (
     id: IDType<Table>,
     value: Partial<PickExcept<Defs['js'], 'id'>>,
