@@ -87,7 +87,7 @@ function generateJsTypes({
   let jsTypes = ''
   let insertTypes = ''
   function append(jst: string, insertt?: string | boolean) {
-    if (insertt) {
+    if (typeof insertt === 'string') {
       insertTypes += insertt
       jsTypes += jst
     } else {
