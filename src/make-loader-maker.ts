@@ -32,22 +32,24 @@ export const convertersSymbol = Symbol('converters')
 export const tableLoaderSymbol = Symbol('tableLoader')
 
 export const makeLoaderMaker = <
-  TableToTypeMap extends {},
-  TableToJsTypeMap extends { [tab in keyof TableToJsTypeMap]: any },
-  TableToInsertTypeMap extends { [tab in keyof TableToInsertTypeMap]: any },
+  Definitions extends {
+    table: {}
+    js: { [tab in keyof Definitions['table']]: any }
+    insert: { [tab in keyof Definitions['table']]: any }
+  },
   FilterArg = undefined
->() => <Table extends keyof TableToTypeMap>(opts: {
+>() => <Table extends keyof Definitions['table']>(opts: {
   table: Table
   converters?: {
-    [key in keyof TableToTypeMap[Table]]?: key extends keyof TableToJsTypeMap[Table]
+    [key in keyof Definitions['table'][Table]]?: key extends keyof Definitions['js'][Table]
       ? ConverterFactory<
-          TableToTypeMap[Table][key],
-          TableToJsTypeMap[Table][key],
+          Definitions['table'][Table][key],
+          Definitions['js'][Table][key],
           Table
         >
       : ConverterFactory<
-          TableToTypeMap[Table][key],
-          TableToTypeMap[Table][key],
+          Definitions['table'][Table][key],
+          Definitions['table'][Table][key],
           Table
         >
   }
@@ -56,19 +58,18 @@ export const makeLoaderMaker = <
 }) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
-      TableToTypeMap[Table],
-      TableToJsTypeMap[Table],
-      TableToInsertTypeMap[Table],
+      {
+        js: Definitions['js'][Table]
+        table: Definitions['table'][Table]
+        insert: Definitions['insert'][Table]
+      },
       Table
     >,
   ) => T = () => ({} as T),
   {
     filter,
   }: {
-    filter?: (
-      v: JSTypeWithID<TableToJsTypeMap[Table], Table>,
-      a: FilterArg,
-    ) => boolean
+    filter?: (v: Definitions['js'][Table], a: FilterArg) => boolean
   } = {},
 ) => (args: Args<FilterArg>) => {
   const { onUpdate, onInsert } = opts
@@ -76,9 +77,11 @@ export const makeLoaderMaker = <
     c ? c({ table: opts.table }) : null,
   )
   const loader = new TableLoader<
-    TableToTypeMap[Table],
-    TableToJsTypeMap[Table],
-    TableToInsertTypeMap[Table],
+    {
+      js: Definitions['js'][Table]
+      table: Definitions['table'][Table]
+      insert: Definitions['insert'][Table]
+    },
     Table
   >({
     toDB: mapValues(converters, v => (v ? v.toDB : null)) as any,
@@ -107,9 +110,11 @@ export const makeLoaderMaker = <
     [convertersSymbol]: converters,
     [tableLoaderSymbol]: loader,
   }) as (InitLoader<
-    TableToTypeMap[Table],
-    TableToJsTypeMap[Table],
-    TableToInsertTypeMap[Table],
+    {
+      js: Definitions['js'][Table]
+      table: Definitions['table'][Table]
+      insert: Definitions['insert'][Table]
+    },
     Table
   > &
     typeof custom)

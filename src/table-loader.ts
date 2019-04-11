@@ -22,26 +22,35 @@ function fieldToDB(field: string) {
 type OrArray<T> = T | T[]
 type IDType<Table> = { id: number; type: Table }
 
-export type InitLoader<TableType, JSType, InsertType, Table> = {
-  byId: (id: IDType<Table>) => Promise<JSType>
-  insert: (v: NullToOptional<PickExcept<JSType, 'id'>>) => Promise<JSType>
+export type InitLoader<
+  Defs extends {
+    table: {}
+    js: {}
+    insert: {}
+  },
+  Table
+> = {
+  byId: (id: IDType<Table>) => Promise<Defs['js']>
+  insert: (
+    v: NullToOptional<PickExcept<Defs['js'], 'id'>>,
+  ) => Promise<Defs['js']>
   update: (
     id: IDType<Table>,
-    value: Partial<PickExcept<JSType, 'id'>>,
+    value: Partial<PickExcept<Defs['js'], 'id'>>,
   ) => Promise<void>
   updateWhere: (
-    value: Partial<PickExcept<JSType, 'id'>>,
+    value: Partial<PickExcept<Defs['js'], 'id'>>,
     where: IDType<Table>[] | IDType<Table>,
   ) => Promise<void>
   raw: (
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
-  ) => Promise<JSType[]>
-  all: (arg?: { orderBy?: keyof JSType }) => Promise<JSType[]>
+  ) => Promise<Defs['js'][]>
+  all: (arg?: { orderBy?: keyof Defs['js'] }) => Promise<Defs['js'][]>
   delete: (ids: OrArray<IDType<Table>>) => Promise<void>
   count: (
     doQuery?: (a: Knex.QueryBuilder) => Knex.QueryBuilder,
   ) => Promise<number>
-  convertToDb: (v: Partial<JSType>) => TableType
+  convertToDb: (v: Partial<Defs['js']>) => Defs['table']
 }
 
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
@@ -85,23 +94,30 @@ function getError(captured: ReturnType<typeof captureStack>) {
   }
 }
 
-export default class TableLoader<TableT, JST, InsertT, Table> {
+export default class TableLoader<
+  Defs extends {
+    table: {}
+    js: {}
+    insert: {}
+  },
+  Table
+> {
   private table: string
 
   private knex: Knex
 
   private clearers: (() => void)[]
 
-  private options: Options<TableT, JST>
+  private options: Options<Defs['table'], Defs['js']>
 
-  constructor(options: Options<TableT, JST>) {
+  constructor(options: Options<Defs['table'], Defs['js']>) {
     this.table = options.table
     this.knex = options.knex
     this.options = options
     this.clearers = []
   }
 
-  private fromDB(o: any, { skipFilter = false } = {}): JST | null {
+  private fromDB(o: any, { skipFilter = false } = {}): Defs['js'] | null {
     const object = transformKey(camelCase)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
@@ -158,12 +174,12 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
 
   /**
    * Runs select query specified using doQuery function and maps resulting
-   * objects to JSType
+   * objects to Defs['js']ype
    */
   private async query(
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
     { convert = false }: { convert?: boolean } = {},
-  ): Promise<JST[]> {
+  ): Promise<Defs['js'][]> {
     const res: any[] = await doQuery(this.knex.table(this.table).select())
     const filtered = res.filter(a => a)
     if (!convert) return filtered
@@ -176,12 +192,13 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
    *
    * SELECT * FROM ${table} WHERE ${field} = ${value};
    */
-  byFieldValueMultiple<Key extends JST[Field], Field extends keyof JST>(
-    field: Field,
-  ) {
+  byFieldValueMultiple<
+    Key extends Defs['js'][Field],
+    Field extends keyof Defs['js']
+  >(field: Field) {
     const loaders = new Map<
       Function | undefined,
-      { args: any; f: DataLoader<[any, any], JST[]> }[]
+      { args: any; f: DataLoader<[any, any], Defs['js'][]> }[]
     >()
     const queryList: string[] = []
 
@@ -220,7 +237,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
       if (!loader) {
         loader = {
           args: b ? b.args : undefined,
-          f: new DataLoader<any, JST[]>(async ids => {
+          f: new DataLoader<any, Defs['js'][]>(async ids => {
             const rows = await this.query(
               q =>
                 b
@@ -256,9 +273,10 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
    *
    * exec(`SELECT * FROM ${table} WHERE ${field} = ${value};`)[0]
    */
-  byFieldValueSingle<Key extends JST[Field], Field extends keyof JST>(
-    field: Field,
-  ) {
+  byFieldValueSingle<
+    Key extends Defs['js'][Field],
+    Field extends keyof Defs['js']
+  >(field: Field) {
     const loader = this.byFieldValueMultiple(field)
     return (a: Key) =>
       loader(a).then(v => {
@@ -278,11 +296,14 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
    *
    * exec(`SELECT * from ${table} WHERE ${fieldA} = ${valueA} AND ${FIELDB} = ${valueB}`)[0]
    */
-  byPair<FieldA extends keyof JST, FieldB extends keyof JST>(
+  byPair<FieldA extends keyof Defs['js'], FieldB extends keyof Defs['js']>(
     fieldA: FieldA,
     fieldB: FieldB,
   ) {
-    const loader = new DataLoader<[JST[FieldA], JST[FieldB]], JST | null>(ids =>
+    const loader = new DataLoader<
+      [Defs['js'][FieldA], Defs['js'][FieldB]],
+      Defs['js'] | null
+    >(ids =>
       Promise.all(
         ids.map(async id => {
           const a = this.toDB({ [fieldA]: id[0] })
@@ -302,7 +323,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (v1: JST[FieldA], v2: JST[FieldB]) =>
+    return (v1: Defs['js'][FieldA], v2: Defs['js'][FieldB]) =>
       loader.load([v1, v2]).then(v => (v ? this.fromDB(v) : v))
   }
 
@@ -310,15 +331,15 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
    * Returns function which takes value of id and loads element which has given
    * id
    */
-  byId(): InitLoader<TableT, JST, InsertT, Table>['byId'] {
-    // this any is needed because specifying JSType extends { id: number } did not work
+  byId(): InitLoader<Defs, Table>['byId'] {
+    // this any is needed because specifying Defs['js']ype extends { id: number } did not work
     return this.byFieldValueSingle('id' as any) as any
   }
 
   /**
    * Deletes values
    */
-  delete(): InitLoader<TableT, JST, InsertT, Table>['delete'] {
+  delete(): InitLoader<Defs, Table>['delete'] {
     const toArray = <T extends {}>(v: OrArray<T>): T[] =>
       Array.isArray(v) ? v : [v]
     return async ids =>
@@ -331,7 +352,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
         })
   }
 
-  all(): InitLoader<TableT, JST, InsertT, Table>['all'] {
+  all(): InitLoader<Defs, Table>['all'] {
     return ({ orderBy = 'id' }: { orderBy?: any } = {}) =>
       this.knex
         .table(this.table)
@@ -343,13 +364,13 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   /**
    * Inserts element into database and clears cache. Returns inserted element
    */
-  insert(): InitLoader<TableT, JST, InsertT, Table>['insert'] {
+  insert(): InitLoader<Defs, Table>['insert'] {
     const loader = new DataLoader<
       {
-        value: NullToOptional<PickExcept<JST, 'id'>>
+        value: NullToOptional<PickExcept<Defs['js'], 'id'>>
         getError: (message: string) => Error
       },
-      JST
+      Defs['js']
     >(
       async list => {
         const values = list.map(v => v.value)
@@ -424,7 +445,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   /**
    * Updates values of all elements whose id matches where argument
    */
-  updateWhere(): InitLoader<TableT, JST, InsertT, Table>['updateWhere'] {
+  updateWhere(): InitLoader<Defs, Table>['updateWhere'] {
     return async (value, where) => {
       let q = this.knex.table(this.table).update(this.toDB(value))
 
@@ -450,7 +471,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
    * Updates element in database. It finds element which it updates by id.
    * Also clears cache
    */
-  update(): InitLoader<TableT, JST, InsertT, Table>['update'] {
+  update(): InitLoader<Defs, Table>['update'] {
     return async (id, value) => {
       const dbId = this.toDB({ id })
       await this.knex
@@ -463,9 +484,9 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   }
 
   /**
-   * Runs select query and transforms result to JSType
+   * Runs select query and transforms result to Defs['js']ype
    */
-  raw(): InitLoader<TableT, JST, InsertT, Table>['raw'] {
+  raw(): InitLoader<Defs, Table>['raw'] {
     return async doQuery =>
       this.query(doQuery).then(v =>
         v.map(el => this.fromDB(el)).filter(notNull),
@@ -475,7 +496,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   /**
    * Returns number of records matching q
    */
-  count(): InitLoader<TableT, JST, InsertT, Table>['count'] {
+  count(): InitLoader<Defs, Table>['count'] {
     return async (doQuery = a => a) =>
       doQuery(this.knex.table(this.table).count()).then(
         (v: [{ count: string }]) => Number.parseInt(v[0].count, 10),
@@ -483,7 +504,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   }
 
   /**
-   * Runs select query and transforms result to JSType.
+   * Runs select query and transforms result to Defs['js']ype.
    * Does NOT have any performance benefits.
    */
   preparedRaw(doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder) {
@@ -496,7 +517,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
   /**
    * Initializes methods which every table loader should have
    */
-  initLoader(): InitLoader<TableT, JST, InsertT, Table> {
+  initLoader(): InitLoader<Defs, Table> {
     return {
       byId: this.byId(),
       insert: this.insert(),
@@ -506,7 +527,7 @@ export default class TableLoader<TableT, JST, InsertT, Table> {
       all: this.all(),
       delete: this.delete(),
       count: this.count(),
-      convertToDb: (v: Partial<JST>) => this.toDB(v),
+      convertToDb: (v: Partial<Defs['js']>) => this.toDB(v),
     }
   }
 }

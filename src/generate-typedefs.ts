@@ -127,8 +127,8 @@ function generateJsTypes({
 
   let map = ''
   let insertMap = ''
-  map += 'export type TableToJsTypeMap = {\n'
-  insertMap += 'export type TableToInsertTypeMap = {\n'
+  map += 'type TableToJsTypeMap = {\n'
+  insertMap += 'type TableToInsertTypeMap = {\n'
   map += Object.entries(loaders)
     .map(
       ([name, loader]) =>
@@ -193,11 +193,17 @@ export const generateTypedefs = async ({
   }
   types += jsTypes.map + '\n'
 
-  types += 'export type TableToTypeMap = {'
+  types += 'type TableToTypeMap = {'
   types += tables
     .map(t => t.name)
     .reduce((a, b) => `${a}\n  ${b}: Table_${b}`, '')
-  types += '\n}\n'
+  types += '\n}\n\n'
+
+  types += 'export type Definitions = {\n'
+  types += '  table: TableToTypeMap\n'
+  types += '  js: TableToJsTypeMap\n'
+  types += '  insert: TableToInsertTypeMap\n'
+  types += '}\n'
 
   const content = await readFile(output)
   if (content !== types) {
