@@ -66,38 +66,59 @@ function firstToUpperCase(word: string) {
   return word[0].toUpperCase() + word.substring(1)
 }
 
+type Column = { key: string; type: string; hasDefault: boolean }
+
 function generateJsTypes({
   loaders,
   tables,
 }: {
   loaders: Loaders
-  tables: { name: string; columns: [string, string][] }[]
+  tables: {
+    name: string
+    columns: Column[]
+  }[]
 }) {
-  const tablesMap = new Map<string, [string, string][]>()
+  const tablesMap = new Map<string, Column[]>()
   tables.forEach(t => {
     tablesMap.set(t.name, t.columns)
   })
 
   const importSet = new Set<string>()
   let jsTypes = ''
+  let insertTypes = ''
+  function append(jst: string, insertt?: string | boolean) {
+    if (insertt) {
+      insertTypes += insertt
+      jsTypes += jst
+    } else {
+      insertTypes += jst
+      jsTypes += jst
+    }
+  }
   for (const [name, loader] of Object.entries(loaders)) {
     const tableName = loader[tableLoaderSymbol].table
     const tableColumns = tablesMap.get(tableName)
     if (!tableColumns) continue
-    jsTypes += `interface Loader${firstToUpperCase(name)} {\n`
-    for (const [k, tableType] of tableColumns) {
-      const conv = loader[convertersSymbol][k]
-      if (k === 'id') {
-        jsTypes += `  id: { type: '${tableName}', id: number }\n`
+    append(
+      `interface Loader${firstToUpperCase(name)} {\n`,
+      `interface Insert${firstToUpperCase(name)} {\n`,
+    )
+    for (const { key, type: tableType, hasDefault } of tableColumns) {
+      const conv = loader[convertersSymbol][key]
+      if (key === 'id') {
+        append(`  id: { type: '${tableName}', id: number }\n`, '')
       } else if (!conv) {
-        jsTypes += `  ${k}: ${tableType}\n`
+        append(
+          `  ${key}: ${tableType}\n`,
+          hasDefault && `  ${key}?: ${tableType}\n`,
+        )
       } else {
         const { imports, jsType } = conv as Converter<any, any>
-        jsTypes += `  ${k}: ${jsType}\n`
+        append(`  ${key}: ${jsType}\n`, hasDefault && `  ${key}?: ${jsType}\n`)
         if (imports) imports.forEach(i => importSet.add(i))
       }
     }
-    jsTypes += '}\n\n'
+    append(`}\n\n`)
   }
   let imports = ''
   for (const theImport of importSet.values()) {
@@ -105,16 +126,25 @@ function generateJsTypes({
   }
 
   let map = ''
+  let insertMap = ''
   map += 'export type TableToJsTypeMap = {\n'
+  insertMap += 'export type TableToInsertTypeMap = {\n'
   map += Object.entries(loaders)
     .map(
       ([name, loader]) =>
         `  ${loader[tableLoaderSymbol].table}: Loader${firstToUpperCase(name)}`,
     )
     .join('\n')
+  insertMap += Object.entries(loaders)
+    .map(
+      ([name, loader]) =>
+        `  ${loader[tableLoaderSymbol].table}: Insert${firstToUpperCase(name)}`,
+    )
+    .join('\n')
   map += '\n}\n'
+  insertMap += '\n}\n'
 
-  return { types: jsTypes, imports, map }
+  return { types: jsTypes + insertTypes, imports, map: map + insertMap }
 }
 
 export const generateTypedefs = async ({
@@ -137,10 +167,11 @@ export const generateTypedefs = async ({
       name: t.name,
       columns: t.columns.map(
         c =>
-          [
-            transformKey(c.name),
-            `${typeForColumn(c)}${referencesComment(c.references)}`,
-          ] as [string, string],
+          ({
+            key: transformKey(c.name),
+            type: `${typeForColumn(c)}${referencesComment(c.references)}`,
+            hasDefault: c.hasDefault,
+          } as Column),
       ),
     }))
 
@@ -155,7 +186,9 @@ export const generateTypedefs = async ({
 
   for (const { name, columns } of tables) {
     types += `interface Table_${name} {\n${columns
-      .map(c => `  ${c[0]}: ${c[1]}`)
+      .map(
+        c => `  ${c.key}: ${c.type}${c.hasDefault ? ' // with default' : ''}`,
+      )
       .join('\n')}\n}\n\n`
   }
   types += jsTypes.map + '\n'

@@ -22,7 +22,7 @@ function fieldToDB(field: string) {
 type OrArray<T> = T | T[]
 type IDType<Table> = { id: number; type: Table }
 
-export type InitLoader<TableType, JSType, Table> = {
+export type InitLoader<TableType, JSType, InsertType, Table> = {
   byId: (id: IDType<Table>) => Promise<JSType>
   insert: (v: NullToOptional<PickExcept<JSType, 'id'>>) => Promise<JSType>
   update: (
@@ -85,23 +85,23 @@ function getError(captured: ReturnType<typeof captureStack>) {
   }
 }
 
-export default class TableLoader<TableType, JSType, Table> {
+export default class TableLoader<TableT, JST, InsertT, Table> {
   private table: string
 
   private knex: Knex
 
   private clearers: (() => void)[]
 
-  private options: Options<TableType, JSType>
+  private options: Options<TableT, JST>
 
-  constructor(options: Options<TableType, JSType>) {
+  constructor(options: Options<TableT, JST>) {
     this.table = options.table
     this.knex = options.knex
     this.options = options
     this.clearers = []
   }
 
-  private fromDB(o: any, { skipFilter = false } = {}): JSType | null {
+  private fromDB(o: any, { skipFilter = false } = {}): JST | null {
     const object = transformKey(camelCase)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
@@ -163,7 +163,7 @@ export default class TableLoader<TableType, JSType, Table> {
   private async query(
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
     { convert = false }: { convert?: boolean } = {},
-  ): Promise<JSType[]> {
+  ): Promise<JST[]> {
     const res: any[] = await doQuery(this.knex.table(this.table).select())
     const filtered = res.filter(a => a)
     if (!convert) return filtered
@@ -176,12 +176,12 @@ export default class TableLoader<TableType, JSType, Table> {
    *
    * SELECT * FROM ${table} WHERE ${field} = ${value};
    */
-  byFieldValueMultiple<Key extends JSType[Field], Field extends keyof JSType>(
+  byFieldValueMultiple<Key extends JST[Field], Field extends keyof JST>(
     field: Field,
   ) {
     const loaders = new Map<
       Function | undefined,
-      { args: any; f: DataLoader<[any, any], JSType[]> }[]
+      { args: any; f: DataLoader<[any, any], JST[]> }[]
     >()
     const queryList: string[] = []
 
@@ -220,7 +220,7 @@ export default class TableLoader<TableType, JSType, Table> {
       if (!loader) {
         loader = {
           args: b ? b.args : undefined,
-          f: new DataLoader<any, JSType[]>(async ids => {
+          f: new DataLoader<any, JST[]>(async ids => {
             const rows = await this.query(
               q =>
                 b
@@ -256,7 +256,7 @@ export default class TableLoader<TableType, JSType, Table> {
    *
    * exec(`SELECT * FROM ${table} WHERE ${field} = ${value};`)[0]
    */
-  byFieldValueSingle<Key extends JSType[Field], Field extends keyof JSType>(
+  byFieldValueSingle<Key extends JST[Field], Field extends keyof JST>(
     field: Field,
   ) {
     const loader = this.byFieldValueMultiple(field)
@@ -278,14 +278,11 @@ export default class TableLoader<TableType, JSType, Table> {
    *
    * exec(`SELECT * from ${table} WHERE ${fieldA} = ${valueA} AND ${FIELDB} = ${valueB}`)[0]
    */
-  byPair<FieldA extends keyof JSType, FieldB extends keyof JSType>(
+  byPair<FieldA extends keyof JST, FieldB extends keyof JST>(
     fieldA: FieldA,
     fieldB: FieldB,
   ) {
-    const loader = new DataLoader<
-      [JSType[FieldA], JSType[FieldB]],
-      JSType | null
-    >(ids =>
+    const loader = new DataLoader<[JST[FieldA], JST[FieldB]], JST | null>(ids =>
       Promise.all(
         ids.map(async id => {
           const a = this.toDB({ [fieldA]: id[0] })
@@ -305,7 +302,7 @@ export default class TableLoader<TableType, JSType, Table> {
     this.clearers.push(() => {
       loader.clearAll()
     })
-    return (v1: JSType[FieldA], v2: JSType[FieldB]) =>
+    return (v1: JST[FieldA], v2: JST[FieldB]) =>
       loader.load([v1, v2]).then(v => (v ? this.fromDB(v) : v))
   }
 
@@ -313,7 +310,7 @@ export default class TableLoader<TableType, JSType, Table> {
    * Returns function which takes value of id and loads element which has given
    * id
    */
-  byId(): InitLoader<TableType, JSType, Table>['byId'] {
+  byId(): InitLoader<TableT, JST, InsertT, Table>['byId'] {
     // this any is needed because specifying JSType extends { id: number } did not work
     return this.byFieldValueSingle('id' as any) as any
   }
@@ -321,7 +318,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Deletes values
    */
-  delete(): InitLoader<TableType, JSType, Table>['delete'] {
+  delete(): InitLoader<TableT, JST, InsertT, Table>['delete'] {
     const toArray = <T extends {}>(v: OrArray<T>): T[] =>
       Array.isArray(v) ? v : [v]
     return async ids =>
@@ -334,7 +331,7 @@ export default class TableLoader<TableType, JSType, Table> {
         })
   }
 
-  all(): InitLoader<TableType, JSType, Table>['all'] {
+  all(): InitLoader<TableT, JST, InsertT, Table>['all'] {
     return ({ orderBy = 'id' }: { orderBy?: any } = {}) =>
       this.knex
         .table(this.table)
@@ -346,13 +343,13 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Inserts element into database and clears cache. Returns inserted element
    */
-  insert(): InitLoader<TableType, JSType, Table>['insert'] {
+  insert(): InitLoader<TableT, JST, InsertT, Table>['insert'] {
     const loader = new DataLoader<
       {
-        value: NullToOptional<PickExcept<JSType, 'id'>>
+        value: NullToOptional<PickExcept<JST, 'id'>>
         getError: (message: string) => Error
       },
-      JSType
+      JST
     >(
       async list => {
         const values = list.map(v => v.value)
@@ -427,7 +424,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Updates values of all elements whose id matches where argument
    */
-  updateWhere(): InitLoader<TableType, JSType, Table>['updateWhere'] {
+  updateWhere(): InitLoader<TableT, JST, InsertT, Table>['updateWhere'] {
     return async (value, where) => {
       let q = this.knex.table(this.table).update(this.toDB(value))
 
@@ -453,7 +450,7 @@ export default class TableLoader<TableType, JSType, Table> {
    * Updates element in database. It finds element which it updates by id.
    * Also clears cache
    */
-  update(): InitLoader<TableType, JSType, Table>['update'] {
+  update(): InitLoader<TableT, JST, InsertT, Table>['update'] {
     return async (id, value) => {
       const dbId = this.toDB({ id })
       await this.knex
@@ -468,7 +465,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Runs select query and transforms result to JSType
    */
-  raw(): InitLoader<TableType, JSType, Table>['raw'] {
+  raw(): InitLoader<TableT, JST, InsertT, Table>['raw'] {
     return async doQuery =>
       this.query(doQuery).then(v =>
         v.map(el => this.fromDB(el)).filter(notNull),
@@ -478,7 +475,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Returns number of records matching q
    */
-  count(): InitLoader<TableType, JSType, Table>['count'] {
+  count(): InitLoader<TableT, JST, InsertT, Table>['count'] {
     return async (doQuery = a => a) =>
       doQuery(this.knex.table(this.table).count()).then(
         (v: [{ count: string }]) => Number.parseInt(v[0].count, 10),
@@ -499,7 +496,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Initializes methods which every table loader should have
    */
-  initLoader(): InitLoader<TableType, JSType, Table> {
+  initLoader(): InitLoader<TableT, JST, InsertT, Table> {
     return {
       byId: this.byId(),
       insert: this.insert(),
@@ -509,7 +506,7 @@ export default class TableLoader<TableType, JSType, Table> {
       all: this.all(),
       delete: this.delete(),
       count: this.count(),
-      convertToDb: (v: Partial<JSType>) => this.toDB(v),
+      convertToDb: (v: Partial<JST>) => this.toDB(v),
     }
   }
 }

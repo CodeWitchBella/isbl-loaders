@@ -34,6 +34,7 @@ export const tableLoaderSymbol = Symbol('tableLoader')
 export const makeLoaderMaker = <
   TableToTypeMap extends {},
   TableToJsTypeMap extends { [tab in keyof TableToJsTypeMap]: any },
+  TableToInsertTypeMap extends { [tab in keyof TableToInsertTypeMap]: any },
   FilterArg = undefined
 >() => <Table extends keyof TableToTypeMap>(opts: {
   table: Table
@@ -57,6 +58,7 @@ export const makeLoaderMaker = <
     tableLoader: TableLoader<
       TableToTypeMap[Table],
       TableToJsTypeMap[Table],
+      TableToInsertTypeMap[Table],
       Table
     >,
   ) => T = () => ({} as T),
@@ -76,6 +78,7 @@ export const makeLoaderMaker = <
   const loader = new TableLoader<
     TableToTypeMap[Table],
     TableToJsTypeMap[Table],
+    TableToInsertTypeMap[Table],
     Table
   >({
     toDB: mapValues(converters, v => (v ? v.toDB : null)) as any,
@@ -103,6 +106,11 @@ export const makeLoaderMaker = <
   return Object.assign(ret, {
     [convertersSymbol]: converters,
     [tableLoaderSymbol]: loader,
-  }) as (InitLoader<TableToTypeMap[Table], TableToJsTypeMap[Table], Table> &
+  }) as (InitLoader<
+    TableToTypeMap[Table],
+    TableToJsTypeMap[Table],
+    TableToInsertTypeMap[Table],
+    Table
+  > &
     typeof custom)
 }
