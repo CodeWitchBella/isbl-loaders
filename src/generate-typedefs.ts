@@ -66,7 +66,12 @@ function firstToUpperCase(word: string) {
   return word[0].toUpperCase() + word.substring(1)
 }
 
-type Column = { key: string; type: string; hasDefault: boolean }
+type Column = {
+  key: string
+  type: string
+  hasDefault: boolean
+  nullable: boolean
+}
 
 function generateJsTypes({
   loaders,
@@ -103,18 +108,22 @@ function generateJsTypes({
       `interface Loader${firstToUpperCase(name)} {\n`,
       `interface Insert${firstToUpperCase(name)} {\n`,
     )
-    for (const { key, type: tableType, hasDefault } of tableColumns) {
+    for (const { key, type: tableType, hasDefault, nullable } of tableColumns) {
+      const insertOptional = hasDefault || nullable
       const conv = loader[convertersSymbol][key]
       if (key === 'id') {
         append(`  id: { type: '${tableName}', id: number }\n`, '')
       } else if (!conv) {
         append(
           `  ${key}: ${tableType}\n`,
-          hasDefault && `  ${key}?: ${tableType}\n`,
+          insertOptional && `  ${key}?: ${tableType}\n`,
         )
       } else {
         const { imports, jsType } = conv as Converter<any, any>
-        append(`  ${key}: ${jsType}\n`, hasDefault && `  ${key}?: ${jsType}\n`)
+        append(
+          `  ${key}: ${jsType}\n`,
+          insertOptional && `  ${key}?: ${jsType}\n`,
+        )
         if (imports) imports.forEach(i => importSet.add(i))
       }
     }
@@ -165,14 +174,12 @@ export const generateTypedefs = async ({
     .sort((a, b) => a.name.localeCompare(b.name, 'en'))
     .map(t => ({
       name: t.name,
-      columns: t.columns.map(
-        c =>
-          ({
-            key: transformKey(c.name),
-            type: `${typeForColumn(c)}${referencesComment(c.references)}`,
-            hasDefault: c.hasDefault,
-          } as Column),
-      ),
+      columns: t.columns.map(c => ({
+        key: transformKey(c.name),
+        type: `${typeForColumn(c)}${referencesComment(c.references)}`,
+        hasDefault: c.hasDefault,
+        nullable: c.nullable,
+      })),
     }))
 
   let types =
