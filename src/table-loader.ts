@@ -3,7 +3,7 @@ import Knex, { QueryBuilder } from 'knex'
 import isEqualWith from 'lodash.isequalwith'
 import snakeCase from 'lodash.snakecase'
 import camelCase from 'lodash.camelcase'
-import { PickExcept, notNull } from '@codewitchbella/ts-utils'
+import { PickExcept, notNull, NullToOptional } from '@codewitchbella/ts-utils'
 
 const production = process.env.NODE_ENV === 'production'
 
@@ -19,32 +19,33 @@ function fieldToDB(field: string) {
   return snakeCase(field)
 }
 
-type NonIDProperties<T> = PickExcept<T, 'id'>
 type OrArray<T> = T | T[]
 type IDType<Table> = { id: number; type: Table }
 
-type NullableProperties<T> = {
-  [K in keyof T]: T[K] extends null ? never : K
-}[keyof T]
-type NonNullableProperties<T> = {
-  [K in keyof T]: T[K] extends null ? never : K
-}[keyof T]
-
-type NullToOptional<T> = {
-  [k in keyof Pick<T, NullableProperties<T>>]?: T[k]
-} &
-  { [k in keyof Pick<T, NonNullableProperties<T>>]?: T[k] }
+export type InitLoader<TableType, JSType, Table> = {
+  byId: (id: IDType<Table>) => Promise<JSType>
+  insert: (v: NullToOptional<PickExcept<JSType, 'id'>>) => Promise<JSType>
+  update: (
+    id: IDType<Table>,
+    value: Partial<PickExcept<JSType, 'id'>>,
+  ) => Promise<void>
+  updateWhere: (
+    value: Partial<PickExcept<JSType, 'id'>>,
+    where: IDType<Table>[] | IDType<Table>,
+  ) => Promise<void>
+  raw: (
+    doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
+  ) => Promise<JSType[]>
+  all: (arg?: { orderBy?: keyof JSType }) => Promise<JSType[]>
+  delete: (ids: OrArray<IDType<Table>>) => Promise<void>
+  count: (
+    doQuery?: (a: Knex.QueryBuilder) => Knex.QueryBuilder,
+  ) => Promise<number>
+  convertToDb: (v: Partial<JSType>) => TableType
+}
 
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
   arr.findIndex(a => a === el) === i
-
-/**
- * Raw queries cannot be cached or batch, so avoid them if caching or
- * batching is needed
- */
-export type RawQuery<JSType> = (
-  doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
-) => Promise<JSType[]>
 
 type Options<TableType /* extends { id: number } */, JSType> = {
   knex: Knex
@@ -312,20 +313,18 @@ export default class TableLoader<TableType, JSType, Table> {
    * Returns function which takes value of id and loads element which has given
    * id
    */
-  byId() {
+  byId(): InitLoader<TableType, JSType, Table>['byId'] {
     // this any is needed because specifying JSType extends { id: number } did not work
-    return (this.byFieldValueSingle('id' as any) as any) as (
-      a: IDType<Table>,
-    ) => Promise<JSType>
+    return this.byFieldValueSingle('id' as any) as any
   }
 
   /**
    * Deletes values
    */
-  delete() {
+  delete(): InitLoader<TableType, JSType, Table>['delete'] {
     const toArray = <T extends {}>(v: OrArray<T>): T[] =>
       Array.isArray(v) ? v : [v]
-    return async (ids: OrArray<IDType<Table>>): Promise<void> =>
+    return async ids =>
       this.knex
         .table(this.table)
         .delete()
@@ -335,12 +334,8 @@ export default class TableLoader<TableType, JSType, Table> {
         })
   }
 
-  all() {
-    return ({
-      orderBy = 'id' as any,
-    }: {
-      orderBy?: keyof JSType
-    } = {}): Promise<JSType[]> =>
+  all(): InitLoader<TableType, JSType, Table>['all'] {
+    return ({ orderBy = 'id' }: { orderBy?: any } = {}) =>
       this.knex
         .table(this.table)
         .select()
@@ -351,10 +346,10 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Inserts element into database and clears cache. Returns inserted element
    */
-  insert() {
+  insert(): InitLoader<TableType, JSType, Table>['insert'] {
     const loader = new DataLoader<
       {
-        value: NullToOptional<NonIDProperties<JSType>>
+        value: NullToOptional<PickExcept<JSType, 'id'>>
         getError: (message: string) => Error
       },
       JSType
@@ -422,7 +417,7 @@ export default class TableLoader<TableType, JSType, Table> {
       },
       { cache: false },
     )
-    return (value: NullToOptional<NonIDProperties<JSType>>) =>
+    return value =>
       loader.load({
         value: this.toDB(value, { ignoreUndefined: true }),
         getError: getError(captureStack()),
@@ -432,11 +427,8 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Updates values of all elements whose id matches where argument
    */
-  updateWhere() {
-    return async (
-      value: Partial<NonIDProperties<JSType>>,
-      where: IDType<Table>[] | IDType<Table>,
-    ): Promise<void> => {
+  updateWhere(): InitLoader<TableType, JSType, Table>['updateWhere'] {
+    return async (value, where) => {
       let q = this.knex.table(this.table).update(this.toDB(value))
 
       const ids = (Array.isArray(where) ? where : [where]).map(
@@ -461,11 +453,8 @@ export default class TableLoader<TableType, JSType, Table> {
    * Updates element in database. It finds element which it updates by id.
    * Also clears cache
    */
-  update() {
-    return async (
-      id: IDType<Table>,
-      value: Partial<NonIDProperties<JSType>>,
-    ): Promise<void> => {
+  update(): InitLoader<TableType, JSType, Table>['update'] {
+    return async (id, value) => {
       const dbId = this.toDB({ id })
       await this.knex
         .table(this.table)
@@ -479,7 +468,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Runs select query and transforms result to JSType
    */
-  raw(): RawQuery<JSType> {
+  raw(): InitLoader<TableType, JSType, Table>['raw'] {
     return async doQuery =>
       this.query(doQuery).then(v =>
         v.map(el => this.fromDB(el)).filter(notNull),
@@ -489,8 +478,8 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Returns number of records matching q
    */
-  count() {
-    return async (doQuery = (a: Knex.QueryBuilder) => a) =>
+  count(): InitLoader<TableType, JSType, Table>['count'] {
+    return async (doQuery = a => a) =>
       doQuery(this.knex.table(this.table).count()).then(
         (v: [{ count: string }]) => Number.parseInt(v[0].count, 10),
       )
@@ -510,7 +499,7 @@ export default class TableLoader<TableType, JSType, Table> {
   /**
    * Initializes methods which every table loader should have
    */
-  initLoader() {
+  initLoader(): InitLoader<TableType, JSType, Table> {
     return {
       byId: this.byId(),
       insert: this.insert(),

@@ -1,7 +1,7 @@
 import Knex from 'knex'
-import { AllPropertiesExcept, PickExcept } from '@codewitchbella/ts-utils'
+import { PickExcept } from '@codewitchbella/ts-utils'
 import mapValues from 'lodash.mapvalues'
-import TableLoader from './table-loader'
+import TableLoader, { InitLoader } from './table-loader'
 
 type Args<FilterArg> = FilterArg extends undefined
   ? { knex: Knex; filterArg?: FilterArg }
@@ -96,10 +96,13 @@ export const makeLoaderMaker = <
         })
     },
   })
+
+  const custom = definition(loader)
   const ret = Object.assign(loader.initLoader(), definition(loader))
 
   return Object.assign(ret, {
     [convertersSymbol]: converters,
     [tableLoaderSymbol]: loader,
-  }) as typeof ret
+  }) as (InitLoader<TableToTypeMap[Table], TableToJsTypeMap[Table], Table> &
+    typeof custom)
 }
