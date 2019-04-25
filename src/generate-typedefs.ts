@@ -174,12 +174,19 @@ export const generateTypedefs = async ({
     .sort((a, b) => a.name.localeCompare(b.name, 'en'))
     .map(t => ({
       name: t.name,
-      columns: t.columns.map(c => ({
-        key: transformKey(c.name),
-        type: `${typeForColumn(c)}${referencesComment(c.references)}`,
-        hasDefault: c.hasDefault,
-        nullable: c.nullable,
-      })),
+      columns: t.columns
+        .sort((a, b) => {
+          if (a.name === b.name) return 0
+          if (a.name === 'id') return -1
+          if (b.name === 'id') return 1
+          return a.name.localeCompare(b.name, 'en')
+        })
+        .map(c => ({
+          key: transformKey(c.name),
+          type: `${typeForColumn(c)}${referencesComment(c.references)}`,
+          hasDefault: c.hasDefault,
+          nullable: c.nullable,
+        })),
     }))
 
   let types =
