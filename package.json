@@ -1,6 +1,6 @@
 {
   "name": "@codewitchbella/loaders",
-  "version": "0.5.9",
+  "version": "0.6.0",
   "description": "Query and update database in sane way with typescript checking",
   "main": "dist/index.js",
   "source": "src/index.ts",
