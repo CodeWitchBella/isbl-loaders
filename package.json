@@ -1,6 +1,6 @@
 {
   "name": "@codewitchbella/loaders",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "Query and update database in sane way with typescript checking",
   "main": "dist/index.js",
   "source": "src/index.ts",
@@ -19,8 +19,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@codewitchbella/postgres-schema": "^0.0.8",
-    "@codewitchbella/ts-utils": "^0.1.13",
+    "@codewitchbella/postgres-schema": "^0.0.9",
+    "@codewitchbella/ts-utils": "^0.1.14",
     "@types/lodash.camelcase": "^4.3.6",
     "@types/lodash.isequalwith": "^4.4.6",
     "@types/lodash.mapvalues": "^4.6.6",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@codewitchbella/microbundle": "^0.11.1",
-    "@codewitchbella/scripts-backend": "^0.2.1",
+    "@codewitchbella/scripts-backend": "^0.2.2",
     "knex": "^0.16.5",
     "pg": "^7.10.0"
   },
