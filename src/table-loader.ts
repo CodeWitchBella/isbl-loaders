@@ -445,7 +445,9 @@ export default class TableLoader<
    */
   updateWhere(): InitLoader<Defs, Table>['updateWhere'] {
     return async (value, where) => {
-      let q = this.knex.table(this.table).update(this.toDB(value))
+      let q = this.knex
+        .table(this.table)
+        .update(this.toDB(value, { ignoreUndefined: true }))
 
       const ids = (Array.isArray(where) ? where : [where]).map(
         id => this.toDB({ id }).id,
@@ -475,7 +477,7 @@ export default class TableLoader<
       await this.knex
         .table(this.table)
         .where(dbId)
-        .update(this.toDB(value))
+        .update(this.toDB(value, { ignoreUndefined: true }))
       this.clearers.forEach(c => c())
       this.options.onUpdate([dbId.id])
     }
