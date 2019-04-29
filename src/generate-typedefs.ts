@@ -250,10 +250,10 @@ export const generateTypedefs = async ({
           .map(
             column => `${column.name}: ${JSON.stringify(column.parsedComment)}`,
           )
-          .join('\n      ')
+          .join(',\n      ')
         return ret
       })
-      .join('\n    },\n')
+      .join(',\n    },\n')
     types += '\n    },\n'
   }
   types += '  },\n'
