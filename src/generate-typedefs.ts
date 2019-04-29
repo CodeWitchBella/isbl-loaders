@@ -156,6 +156,14 @@ function generateJsTypes({
   return { types: jsTypes + insertTypes, imports, map: map + insertMap }
 }
 
+function safeJSONParse(json: string) {
+  try {
+    return JSON.parse(json)
+  } catch {
+    return false
+  }
+}
+
 export const generateTypedefs = async ({
   knex,
   output,
@@ -217,6 +225,38 @@ export const generateTypedefs = async ({
   types += '  table: TableToTypeMap\n'
   types += '  js: TableToJsTypeMap\n'
   types += '  insert: TableToInsertTypeMap\n'
+  types += '}\n'
+
+  types += 'export const Codegen = {\n'
+  types += '  converters: {\n'
+  const filteredTables = schema.tables
+    .map(t => ({
+      ...t,
+      columns: t.columns
+        .map(c => ({
+          ...c,
+          parsedComment:
+            c.comment && c.comment.startsWith('{') && safeJSONParse(c.comment),
+        }))
+        .filter(c => !!c.parsedComment),
+    }))
+    .filter(t => t.columns.length > 0)
+
+  if (filterTables.length > 0) {
+    types += filteredTables
+      .map(table => {
+        let ret = `    ${table.name}: {\n      `
+        ret += table.columns
+          .map(
+            column => `${column.name}: ${JSON.stringify(column.parsedComment)}`,
+          )
+          .join('\n      ')
+        return ret
+      })
+      .join('\n    },\n')
+    types += '\n    },\n'
+  }
+  types += '  },\n'
   types += '}\n'
 
   const content = await readFile(output)
