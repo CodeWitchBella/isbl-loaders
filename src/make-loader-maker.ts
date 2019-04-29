@@ -53,6 +53,11 @@ export const makeLoaderMaker = <
   FilterArg = undefined
 >(
   codegen: Codegen,
+  settings: {
+    converters: {
+      [key: string]: (definition: any) => ConverterFactory<any, any, any>
+    }
+  },
 ) => <Table extends keyof Definitions['table']>(opts: {
   table: Table
   converters?: {
@@ -101,6 +106,10 @@ export const makeLoaderMaker = <
             !definition.autoConvert
           )
             return null
+          const getConverter = settings.converters[definition.type]
+          if (getConverter) {
+            return [column, getConverter(definition)]
+          }
           if (definition.type === 'enum') {
             return [column, enumConverter(definition.values)]
           }
@@ -113,7 +122,6 @@ export const makeLoaderMaker = <
         .filter(notNull),
     )
   })()
-  console.log(automaticConverters)
   const converters = mapValues(
     { ...opts.converters, ...automaticConverters },
     c => (c ? c({ table: opts.table }) : null),

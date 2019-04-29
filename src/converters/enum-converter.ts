@@ -1,8 +1,8 @@
-import { Converter, ConverterInfo } from '../make-loader-maker'
+import { ConverterFactory } from '../make-loader-maker'
 
 export const enumConverter = <T extends string>(
   map: { [key in T]: number },
-) => (info: ConverterInfo<any>): Converter<number, T> => {
+): ConverterFactory<number, T, any> => info => {
   const inverseMap: { [k: number]: T } = {}
   for (const key of Object.keys(map)) {
     if (map[key as T] in inverseMap)
