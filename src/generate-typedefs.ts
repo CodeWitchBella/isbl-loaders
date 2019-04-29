@@ -242,7 +242,7 @@ export const generateTypedefs = async ({
     }))
     .filter(t => t.columns.length > 0)
 
-  if (filterTables.length > 0) {
+  if (filteredTables.length > 0) {
     types += filteredTables
       .map(table => {
         let ret = `    ${table.name}: {\n      `
