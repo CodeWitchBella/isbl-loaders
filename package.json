@@ -21,11 +21,6 @@
   "dependencies": {
     "@codewitchbella/postgres-schema": "^0.1.0",
     "@codewitchbella/ts-utils": "^0.1.14",
-    "@types/lodash.camelcase": "^4.3.6",
-    "@types/lodash.isequalwith": "^4.4.6",
-    "@types/lodash.mapvalues": "^4.6.6",
-    "@types/lodash.snakecase": "^4.1.6",
-    "@types/node": "^11.13.7",
     "dataloader": "^1.4.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.isequalwith": "^4.4.0",
@@ -38,6 +33,11 @@
   "devDependencies": {
     "@codewitchbella/microbundle": "^0.11.1",
     "@codewitchbella/scripts-backend": "^0.2.2",
+    "@types/node": "^11.13.7",
+    "@types/lodash.camelcase": "^4.3.6",
+    "@types/lodash.isequalwith": "^4.4.6",
+    "@types/lodash.mapvalues": "^4.6.6",
+    "@types/lodash.snakecase": "^4.1.6",
     "knex": "^0.16.5",
     "pg": "^7.10.0"
   },

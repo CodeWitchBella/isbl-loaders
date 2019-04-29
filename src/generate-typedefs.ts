@@ -248,7 +248,10 @@ export const generateTypedefs = async ({
         let ret = `    ${table.name}: {\n      `
         ret += table.columns
           .map(
-            column => `${column.name}: ${JSON.stringify(column.parsedComment)}`,
+            column =>
+              `${transformKey(column.name)}: ${JSON.stringify(
+                column.parsedComment,
+              )}`,
           )
           .join(',\n      ')
         return ret
