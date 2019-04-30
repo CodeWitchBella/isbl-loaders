@@ -244,6 +244,7 @@ export const generateTypedefs = async ({
 
   if (filteredTables.length > 0) {
     types += filteredTables
+      .sort((a, b) => a.name.localeCompare(b.name))
       .map(table => {
         let ret = `    ${table.name}: {\n      `
         ret += table.columns
