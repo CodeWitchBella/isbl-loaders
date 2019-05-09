@@ -32,7 +32,7 @@ export type InitLoader<
 > = {
   byId: <Assert extends true | false = false>(
     id: IDType<Table>,
-    opts: { assertNull: Assert },
+    opts?: { assertNull: Assert },
   ) => Promise<Defs['js'] | (Assert extends false ? null : never)>
   insert: (v: Defs['insert']) => Promise<Defs['js']>
   update: (
