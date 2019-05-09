@@ -124,7 +124,17 @@ export default class TableLoader<
     if (this.options.fromDB) {
       for (const [key, resolver] of Object.entries(this.options.fromDB)) {
         if (key in object && resolver) {
-          r[key] = resolver(object[key])
+          try {
+            r[key] = resolver(object[key])
+          } catch (e) {
+            const err = new Error(
+              `Error occured while converting field ${key} of table ${
+                this.table
+              } from db${object.id ? ` (id: ${object.id})` : ''}`,
+            )
+            err.stack += `\nOriginal error:\n${e.stack}`
+            throw err
+          }
         }
       }
     }
@@ -151,7 +161,7 @@ export default class TableLoader<
             const err = new Error(
               `Error occured while converting field ${key} of table ${
                 this.table
-              } to db`,
+              } to db${object.id ? ` (id: ${object.id.id})` : ''}`,
             )
             err.stack += `\nOriginal error:\n${e.stack}`
             throw err
