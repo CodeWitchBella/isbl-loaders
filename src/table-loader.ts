@@ -30,7 +30,10 @@ export type InitLoader<
   },
   Table
 > = {
-  byId: (id: IDType<Table>) => Promise<Defs['js'] | null>
+  byId: <Assert extends true | false = false>(
+    id: IDType<Table>,
+    opts: { assertNull: Assert },
+  ) => Promise<Defs['js'] | (Assert extends false ? null : never)>
   insert: (v: Defs['insert']) => Promise<Defs['js']>
   update: (
     id: IDType<Table>,
@@ -276,16 +279,31 @@ export default class TableLoader<
     Field extends keyof Defs['js']
   >(field: Field) {
     const loader = this.byFieldValueMultiple(field)
-    return (a: Key) =>
-      loader(a).then(v => {
-        if (v.length === 0) return null
-        if (v.length === 1) return v[0]
-        throw new Error(
-          `Found more than one item for field "${field}" value "${a}" in table "${
-            this.table
-          }"`,
-        )
-      })
+    return <Assert extends true | false = false>(
+      a: Key,
+      { assertNull }: { assertNull?: Assert } = {},
+    ) =>
+      loader(a).then(
+        (
+          v: Defs['js'][],
+        ): (Assert extends false ? null : never) | Defs['js'] => {
+          if (v.length === 0) {
+            if (assertNull)
+              throw new Error(
+                `Did not find item for field ${JSON.stringify(
+                  field,
+                )} value ${JSON.stringify(a)} in table "${this.table}"`,
+              )
+            return null!
+          }
+          if (v.length === 1) return v[0]
+          throw new Error(
+            `Found more than one item for field "${field}" value "${a}" in table "${
+              this.table
+            }"`,
+          )
+        },
+      )
   }
 
   /**
