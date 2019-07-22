@@ -125,7 +125,7 @@ export default class TableLoader<
       for (const [key, resolver] of Object.entries(this.options.fromDB)) {
         if (key in object && resolver) {
           try {
-            r[key] = resolver(object[key])
+            r[key] = (resolver as any)(object[key])
           } catch (e) {
             const err = new Error(
               `Error occured while converting field ${key} of table ${
@@ -156,7 +156,7 @@ export default class TableLoader<
           if (ignoreUndefined && object[key] === undefined) continue
 
           try {
-            r[key] = resolver(object[key])
+            r[key] = (resolver as any)(object[key])
           } catch (e) {
             const err = new Error(
               `Error occured while converting field ${key} of table ${
@@ -404,7 +404,7 @@ export default class TableLoader<
           const q = this.knex.table(this.table).insert(v)
           return this.knex
             .raw('? on conflict do nothing returning *', q)
-            .then(v => v.rows)
+            .then(v => (v as any).rows)
         }
         try {
           const batchedValues = values.filter(v => Object.keys(v).length > 0)
@@ -526,8 +526,8 @@ export default class TableLoader<
    */
   count(): InitLoader<Defs, Table>['count'] {
     return async (doQuery = a => a) =>
-      doQuery(this.knex.table(this.table).count()).then(
-        (v: [{ count: string }]) => Number.parseInt(v[0].count, 10),
+      doQuery(this.knex.table(this.table).count()).then((v: any) =>
+        Number.parseInt(v[0].count, 10),
       )
   }
 
