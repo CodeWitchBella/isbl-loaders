@@ -24,6 +24,7 @@ function convertType(type: string) {
     numeric: 'string',
     json: 'any',
     'timestamp with time zone': 'Date',
+    varying: 'string',
   } as { [key: string]: string })[type]
   if (!ret) {
     throw new Error(`Unknown type ${type}`)
