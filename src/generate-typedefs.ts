@@ -23,6 +23,7 @@ function convertType(type: string) {
     bigint: 'string',
     numeric: 'string',
     json: 'any',
+    'timestamp with time zone': 'Date',
   } as { [key: string]: string })[type]
   if (!ret) {
     throw new Error(`Unknown type ${type}`)
