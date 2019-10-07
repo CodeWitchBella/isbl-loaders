@@ -9,7 +9,7 @@ export const enumConverter = <T extends string>(
       throw new Error(
         'Duplicate enum value ' + map[key as T] + ' on table ' + info.table,
       )
-    inverseMap[map[key as T]] = key
+    ;(inverseMap as any)[map[key as T]] = key
   }
   return {
     fromDB: num => {
