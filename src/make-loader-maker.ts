@@ -4,9 +4,7 @@ import mapValues from 'lodash.mapvalues'
 import TableLoader, { InitLoader } from './table-loader'
 import { enumConverter } from './converters/enum-converter'
 
-type Args<FilterArg> = FilterArg extends undefined
-  ? { knex: Knex; filterArg?: FilterArg }
-  : { knex: Knex; filterArg: FilterArg }
+type Args = { knex: Knex }
 
 type IDType<T> = { id: number; type: T }
 
@@ -49,8 +47,7 @@ export const makeLoaderMaker = <
     table: {}
     js: { [tab in keyof Definitions['table']]: any }
     insert: { [tab in keyof Definitions['table']]: any }
-  },
-  FilterArg = undefined
+  }
 >(
   codegen: Codegen,
   settings: {
@@ -73,8 +70,8 @@ export const makeLoaderMaker = <
           Table
         >
   }
-  onInsert?: (id: IDType<Table>[], args: Args<FilterArg>) => void
-  onUpdate?: (id: IDType<Table>[], args: Args<FilterArg>) => void
+  onInsert?: (id: IDType<Table>[], args: Args) => void
+  onUpdate?: (id: IDType<Table>[], args: Args) => void
 }) => <T extends {}>(
   definition: (
     tableLoader: TableLoader<
@@ -86,11 +83,6 @@ export const makeLoaderMaker = <
       Table
     >,
   ) => T = () => ({} as T),
-  {
-    filter,
-  }: {
-    filter?: (v: Definitions['js'][Table], a: FilterArg) => boolean
-  } = {},
 ) => {
   const { onUpdate, onInsert } = opts
 
@@ -126,7 +118,7 @@ export const makeLoaderMaker = <
     { ...opts.converters, ...automaticConverters },
     c => (c ? c({ table: opts.table }) : null),
   )
-  return (args: Args<FilterArg>) => {
+  return (args: Args) => {
     const loader = new TableLoader<
       {
         js: Definitions['js'][Table]
@@ -139,17 +131,22 @@ export const makeLoaderMaker = <
       fromDB: mapValues(converters, v => (v ? v.fromDB : null)) as any,
       table: opts.table as string,
       knex: args.knex,
-      filter: filter ? v => filter(v, args.filterArg!) : undefined,
       onInsert: (ids: number[]) => {
         if (onInsert)
           setImmediate(() => {
-            onInsert(ids.map(id => ({ type: opts.table, id })), args)
+            onInsert(
+              ids.map(id => ({ type: opts.table, id })),
+              args,
+            )
           })
       },
       onUpdate: (ids: number[]) => {
         if (onUpdate)
           setImmediate(() => {
-            onUpdate(ids.map(id => ({ type: opts.table, id })), args)
+            onUpdate(
+              ids.map(id => ({ type: opts.table, id })),
+              args,
+            )
           })
       },
     })
@@ -160,7 +157,7 @@ export const makeLoaderMaker = <
     return Object.assign(ret, {
       [convertersSymbol]: converters,
       [tableLoaderSymbol]: loader,
-    }) as (InitLoader<
+    }) as InitLoader<
       {
         js: Definitions['js'][Table]
         table: Definitions['table'][Table]
@@ -168,6 +165,6 @@ export const makeLoaderMaker = <
       },
       Table
     > &
-      typeof custom)
+      typeof custom
   }
 }

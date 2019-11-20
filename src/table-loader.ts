@@ -72,7 +72,6 @@ type Options<TableType /* extends { id: number } */, JSType> = {
   }
   onInsert: (id: number[]) => void
   onUpdate: (id: number[]) => void
-  filter?: (v: JSType) => boolean
 }
 
 function captureStack() {
@@ -118,7 +117,7 @@ export default class TableLoader<
     this.clearers = []
   }
 
-  private fromDB(o: any, { skipFilter = false } = {}): Defs['js'] | null {
+  private fromDB(o: any): Defs['js'] {
     const object = transformKey(camelCase)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
@@ -138,9 +137,6 @@ export default class TableLoader<
         }
       }
     }
-
-    if (!skipFilter && this.options.filter && !this.options.filter(r))
-      return null
 
     return r
   }
@@ -293,27 +289,23 @@ export default class TableLoader<
       a: Key,
       { assertNull }: { assertNull?: Assert } = {},
     ) =>
-      loader(a).then(
-        (
-          v: Defs['js'][],
-        ): (Assert extends false ? null : never) | Defs['js'] => {
-          if (v.length === 0) {
-            if (assertNull)
-              throw new Error(
-                `Did not find item for field ${JSON.stringify(
-                  field,
-                )} value ${JSON.stringify(a)} in table "${this.table}"`,
-              )
-            return null!
-          }
-          if (v.length === 1) return v[0]
-          throw new Error(
-            `Found more than one item for field "${field}" value "${a}" in table "${
-              this.table
-            }"`,
-          )
-        },
-      )
+      loader(a).then((v: Defs['js'][]):
+        | (Assert extends false ? null : never)
+        | Defs['js'] => {
+        if (v.length === 0) {
+          if (assertNull)
+            throw new Error(
+              `Did not find item for field ${JSON.stringify(
+                field,
+              )} value ${JSON.stringify(a)} in table "${this.table}"`,
+            )
+          return null!
+        }
+        if (v.length === 1) return v[0]
+        throw new Error(
+          `Found more than one item for field "${field}" value "${a}" in table "${this.table}"`,
+        )
+      })
   }
 
   /**
@@ -372,7 +364,10 @@ export default class TableLoader<
       this.knex
         .table(this.table)
         .delete()
-        .whereIn('id', toArray(ids).map(id => this.toDB({ id }).id))
+        .whereIn(
+          'id',
+          toArray(ids).map(id => this.toDB({ id }).id),
+        )
         .then(() => {
           this.clearers.forEach(c => c())
         })
@@ -442,11 +437,7 @@ export default class TableLoader<
 
           const ret = values
             .map(inToReturning)
-            .map(v =>
-              v
-                ? this.fromDB(v, { skipFilter: true })!
-                : new Error('Insert failed'),
-            )
+            .map(v => (v ? this.fromDB(v) : new Error('Insert failed')))
           if (returning.length > 0) {
             // eslint-disable-next-line no-console
             console.log({ values, returning })
