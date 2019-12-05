@@ -103,6 +103,8 @@ function generateJsTypes({
     }
   }
   for (const [name, loader] of Object.entries(loaders)) {
+    if (!(loader && typeof loader === 'object' && tableLoaderSymbol in loader))
+      continue
     const tableName = loader[tableLoaderSymbol].table
     const tableColumns = tablesMap.get(tableName)
     if (!tableColumns) continue
