@@ -52,6 +52,7 @@ export type InitLoader<
     doQuery?: (a: Knex.QueryBuilder) => Knex.QueryBuilder,
   ) => Promise<number>
   convertToDb: (v: Partial<Defs['js']>) => Defs['table']
+  info: { table: Table }
 }
 
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
@@ -547,6 +548,7 @@ export default class TableLoader<
       delete: this.delete(),
       count: this.count(),
       convertToDb: (v: Partial<Defs['js']>) => this.toDB(v),
+      info: { table: this.table as any },
     }
   }
 }

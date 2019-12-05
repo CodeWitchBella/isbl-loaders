@@ -152,7 +152,7 @@ export const makeLoaderMaker = <
     })
 
     const custom = definition(loader)
-    const ret = Object.assign(loader.initLoader(), definition(loader))
+    const ret = Object.assign(loader.initLoader(), custom)
 
     return Object.assign(ret, {
       [convertersSymbol]: converters,
