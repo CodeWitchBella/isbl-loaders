@@ -76,7 +76,7 @@ type Column = {
 }
 
 function generateJsTypes({
-  loaders,
+  loaders: loadersIn,
   tables,
 }: {
   loaders: Loaders
@@ -85,6 +85,10 @@ function generateJsTypes({
     columns: Column[]
   }[]
 }) {
+  const loaders = Object.entries(loadersIn).filter(
+    ([k, loader]) =>
+      loader && typeof loader === 'object' && tableLoaderSymbol in loader,
+  )
   const tablesMap = new Map<string, Column[]>()
   tables.forEach(t => {
     tablesMap.set(t.name, t.columns)
@@ -102,9 +106,7 @@ function generateJsTypes({
       jsTypes += jst
     }
   }
-  for (const [name, loader] of Object.entries(loaders)) {
-    if (!(loader && typeof loader === 'object' && tableLoaderSymbol in loader))
-      continue
+  for (const [name, loader] of loaders) {
     const tableName = loader[tableLoaderSymbol].table
     const tableColumns = tablesMap.get(tableName)
     if (!tableColumns) continue
@@ -142,13 +144,13 @@ function generateJsTypes({
   let insertMap = ''
   map += 'type TableToJsTypeMap = {\n'
   insertMap += 'type TableToInsertTypeMap = {\n'
-  map += Object.entries(loaders)
+  map += loaders
     .map(
       ([name, loader]) =>
         `  ${loader[tableLoaderSymbol].table}: Loader${firstToUpperCase(name)}`,
     )
     .join('\n')
-  insertMap += Object.entries(loaders)
+  insertMap += loaders
     .map(
       ([name, loader]) =>
         `  ${loader[tableLoaderSymbol].table}: Insert${firstToUpperCase(name)}`,
