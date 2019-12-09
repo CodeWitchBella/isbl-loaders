@@ -87,6 +87,7 @@ export const makeLoaderMaker = <
   const { onUpdate, onInsert } = opts
 
   const automaticConverters = (() => {
+    if (!codegen || !codegen.converters) return {}
     const src = codegen.converters[opts.table as string]
     if (!src) return {}
     return fromEntries(
