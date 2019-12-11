@@ -213,7 +213,7 @@ export default class TableLoader<
     const dbField = fieldToDB(field as any)
     const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
     return <T extends Object | undefined = undefined>(
-      a: Key,
+      key: OrArray<Key>,
       b?: {
         query: (q: QueryBuilder, args: T) => QueryBuilder
         args: T
@@ -269,9 +269,15 @@ export default class TableLoader<
         })
       }
 
-      return loader.f
-        .load(valueToDB(a))
-        .then(v => v.map(el => this.fromDB(el)).filter(notNull))
+      if (Array.isArray(key)) {
+        return loader.f
+          .loadMany(key.map(valueToDB))
+          .then(v => v.map(el => this.fromDB(el)).filter(notNull))
+      } else {
+        return loader.f
+          .load(valueToDB(key))
+          .then(v => v.map(el => this.fromDB(el)).filter(notNull))
+      }
     }
   }
 
