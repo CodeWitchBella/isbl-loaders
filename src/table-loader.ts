@@ -118,7 +118,7 @@ export default class TableLoader<
     this.clearers = []
   }
 
-  private fromDB(o: any): Defs['js'] {
+  private fromDB(o: Defs['table']): Defs['js'] {
     const object = transformKey(camelCase)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
@@ -206,12 +206,12 @@ export default class TableLoader<
   >(field: Field) {
     const loaders = new Map<
       Function | undefined,
-      { args: any; f: DataLoader<[any, any], Defs['js'][]> }[]
+      { args: any; f: DataLoader<[any, any], Defs['table'][]> }[]
     >()
     const queryList: string[] = []
 
     const dbField = fieldToDB(field as any)
-    const valueToDB = (v: any) => this.toDB({ [field]: v })[dbField]
+    const valueToDB = (v: Defs['js']) => this.toDB({ [field]: v })[dbField]
     return <T extends Object | undefined = undefined>(
       key: OrArray<Key>,
       b?: {
@@ -270,9 +270,12 @@ export default class TableLoader<
       }
 
       if (Array.isArray(key)) {
-        return loader.f
-          .loadMany(key.map(valueToDB))
-          .then(v => v.map(el => this.fromDB(el)).filter(notNull))
+        return loader.f.loadMany(key.map(valueToDB)).then(v =>
+          v
+            .flat()
+            .map(el => this.fromDB(el))
+            .filter(notNull),
+        )
       } else {
         return loader.f
           .load(valueToDB(key))
