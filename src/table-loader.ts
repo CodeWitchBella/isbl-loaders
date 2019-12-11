@@ -270,12 +270,18 @@ export default class TableLoader<
       }
 
       if (Array.isArray(key)) {
-        return loader.f.loadMany(key.map(valueToDB)).then(v =>
-          v
-            .flat()
-            .map(el => this.fromDB(el))
-            .filter(notNull),
-        )
+        return loader.f
+          .loadMany(key.map(valueToDB))
+          .then(v =>
+            v
+              .flat()
+              .map(el => this.fromDB(el))
+              .filter(notNull),
+          )
+          .then(ret => {
+            for (const el of ret) if (el instanceof Error) throw el
+            return ret
+          })
       } else {
         return loader.f
           .load(valueToDB(key))
