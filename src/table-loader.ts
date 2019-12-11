@@ -19,7 +19,7 @@ function fieldToDB(field: string) {
   return snakeCase(field)
 }
 
-type OrArray<T> = T | T[]
+type OrArray<T> = T | readonly T[]
 type IDType<Table> = { id: number; type: Table }
 
 export type InitLoader<
@@ -41,7 +41,7 @@ export type InitLoader<
   ) => Promise<void>
   updateWhere: (
     value: Partial<PickExcept<Defs['js'], 'id'>>,
-    where: IDType<Table>[] | IDType<Table>,
+    where: OrArray<IDType<Table>>,
   ) => Promise<void>
   raw: (
     doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder,
