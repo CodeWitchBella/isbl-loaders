@@ -55,7 +55,7 @@ export type InitLoader<
   info: { table: Table }
 }
 
-export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
+export const unique = <T extends Object>(el: T, i: number, arr: readonly T[]) =>
   arr.findIndex((a) => a === el) === i
 
 type Options<TableType /* extends { id: number } */, JSType> = {
