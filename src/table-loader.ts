@@ -399,69 +399,101 @@ export default class TableLoader<
    * Inserts element into database and clears cache. Returns inserted element
    */
   insert(): InitLoader<Defs, Table>['insert'] {
-    const loader = new DataLoader<
-      {
-        value: NullToOptional<PickExcept<Defs['js'], 'id'>>
-        getError: (message: string) => Error
-      },
-      Defs['js']
-    >(
-      async (list) => {
-        const values = list.map((v) => v.value)
-        const insert = (v: any) => {
-          const q = this.knex.table(this.table).insert(v)
-          return this.knex
-            .raw('? on conflict do nothing returning *', q)
-            .then((v) => (v as any).rows)
-        }
-        try {
-          const batchedValues = values.filter((v) => Object.keys(v).length > 0)
-          let returning: any[] =
-            batchedValues.length > 0 ? await insert(batchedValues) : []
-          this.clearers.forEach((c) => c())
-          this.options.onInsert(returning.map((r) => r.id))
+    type Item = {
+      value: NullToOptional<PickExcept<Defs['js'], 'id'>>
+      getError: (message: string) => Error
+    }
+    const insertSlice = async (
+      trx: Knex.Transaction,
+      list: readonly Item[],
+    ) => {
+      const values = list.map((v) => v.value)
+      const insert = (v: any) => {
+        const q = trx.table(this.table).insert(v)
+        return trx
+          .raw('? on conflict do nothing returning *', q)
+          .then((v) => (v as any).rows)
+      }
+      try {
+        const batchedValues = values.filter((v) => Object.keys(v).length > 0)
+        let returning: any[] =
+          batchedValues.length > 0 ? await insert(batchedValues) : []
+        this.clearers.forEach((c) => c())
+        this.options.onInsert(returning.map((r) => r.id))
 
-          returning = returning.concat(
-            await Promise.all(
-              values
-                .filter((v) => Object.keys(v).length === 0)
-                .map((v) => insert(v).then((l) => l[0])),
-            ),
+        returning = returning.concat(
+          await Promise.all(
+            values
+              .filter((v) => Object.keys(v).length === 0)
+              .map((v) => insert(v).then((l) => l[0])),
+          ),
+        )
+
+        /*
+         * Returns ret element which matches inEl AND removes it from ret array
+         * kind of like splice
+         */
+        const inToReturning = (inEl: any) => {
+          const index = returning.findIndex((el) => {
+            // the undefined comparison is here because of default values
+            const weakCompare = (a: any, b: any) =>
+              // eslint-disable-next-line eqeqeq
+              a === undefined || a == b ? true : undefined
+            for (const key of Object.keys(inEl)) {
+              if (!isEqualWith(inEl[key], (el as any)[key], weakCompare))
+                return false
+            }
+            return true
+          })
+          return index >= 0 ? returning.splice(index, 1)[0] : null
+        }
+
+        const ret = values
+          .map(inToReturning)
+          .map((v) => (v ? this.fromDB(v) : new Error('Insert failed')))
+        if (returning.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log({ values, returning })
+          throw new Error(
+            'Returning contains elements. Something went horribly wrong!',
           )
-
-          /*
-           * Returns ret element which matches inEl AND removes it from ret array
-           * kind of like splice
-           */
-          const inToReturning = (inEl: any) => {
-            const index = returning.findIndex((el) => {
-              // the undefined comparison is here because of default values
-              const weakCompare = (a: any, b: any) =>
-                // eslint-disable-next-line eqeqeq
-                a === undefined || a == b ? true : undefined
-              for (const key of Object.keys(inEl)) {
-                if (!isEqualWith(inEl[key], (el as any)[key], weakCompare))
-                  return false
-              }
-              return true
-            })
-            return index >= 0 ? returning.splice(index, 1)[0] : null
-          }
-
-          const ret = values
-            .map(inToReturning)
-            .map((v) => (v ? this.fromDB(v) : new Error('Insert failed')))
-          if (returning.length > 0) {
-            // eslint-disable-next-line no-console
-            console.log({ values, returning })
-            throw new Error(
-              'Returning contains elements. Something went horribly wrong!',
-            )
-          }
-          return ret
-        } catch (e) {
-          return list.map((v) => v.getError(e.message))
         }
+        return ret
+      } catch (e) {
+        return list.map((v) => v.getError(e.message))
+      }
+    }
+
+    const sliceIt = (list: readonly Item[]) => {
+      if (list.length <= 0) return []
+      const maxFields = list.reduce((a, b) => {
+        const count = Object.keys(b.value).length
+        return a > count ? a : count
+      }, 0)
+
+      const MAX_BINDS = 65535 // https://github.com/knex/knex/issues/3929
+
+      const itemsPerSlice = Math.floor(MAX_BINDS / maxFields)
+      const sliceCount = Math.ceil(list.length / itemsPerSlice)
+      const sliced = Array.from({ length: sliceCount }).map((_, sliceId) => {
+        const start = sliceId * itemsPerSlice
+        return list.slice(start, start + itemsPerSlice)
+      })
+
+      const sanityCheck = sliced.reduce((a, b) => a.concat(b), [])
+      sanityCheck.forEach((v, i) => {
+        if (list[i] !== v) throw new Error('Split sanity check failed')
+      })
+
+      return sliced
+    }
+    const loader = new DataLoader<Item, Defs['js']>(
+      async (list) => {
+        const sliced = sliceIt(list)
+        const result = await this.knex.transaction((trx) =>
+          Promise.all(sliced.map((slice) => insertSlice(trx, slice))),
+        )
+        return result.reduce((a, b) => a.concat(b), [])
       },
       { cache: false },
     )
