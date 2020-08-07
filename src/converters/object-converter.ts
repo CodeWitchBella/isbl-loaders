@@ -34,7 +34,7 @@ export const objectConverter = <JS extends Object>() => (
         .join('\n')}
     }`,
   imports: Object.values(converters)
-    .map(v => v(info).imports || [])
+    .map((v) => v(info).imports || [])
     .reduce((a, b) => a.concat(b)),
 })
 export default objectConverter

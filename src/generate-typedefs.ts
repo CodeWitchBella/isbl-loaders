@@ -90,7 +90,7 @@ function generateJsTypes({
       loader && typeof loader === 'object' && tableLoaderSymbol in loader,
   )
   const tablesMap = new Map<string, Column[]>()
-  tables.forEach(t => {
+  tables.forEach((t) => {
     tablesMap.set(t.name, t.columns)
   })
 
@@ -130,7 +130,7 @@ function generateJsTypes({
           `  ${key}: ${jsType}\n`,
           insertOptional && `  ${key}?: ${jsType}\n`,
         )
-        if (imports) imports.forEach(i => importSet.add(i))
+        if (imports) imports.forEach((i) => importSet.add(i))
       }
     }
     append(`}\n\n`)
@@ -183,10 +183,10 @@ export const generateTypedefs = async ({
 }) => {
   const schema = await getSchema({ knex })
   const tables = schema.tables
-    .filter(t => filterTables(t.name))
-    .filter(t => t.name !== 'migration')
+    .filter((t) => filterTables(t.name))
+    .filter((t) => t.name !== 'migration')
     .sort((a, b) => a.name.localeCompare(b.name, 'en'))
-    .map(t => ({
+    .map((t) => ({
       name: t.name,
       columns: t.columns
         .sort((a, b) => {
@@ -195,7 +195,7 @@ export const generateTypedefs = async ({
           if (b.name === 'id') return 1
           return a.name.localeCompare(b.name, 'en')
         })
-        .map(c => ({
+        .map((c) => ({
           key: transformKey(c.name),
           type: `${typeForColumn(c)}${referencesComment(c.references)}`,
           hasDefault: c.hasDefault,
@@ -215,7 +215,7 @@ export const generateTypedefs = async ({
   for (const { name, columns } of tables) {
     types += `interface Table_${name} {\n${columns
       .map(
-        c => `  ${c.key}: ${c.type}${c.hasDefault ? ' // with default' : ''}`,
+        (c) => `  ${c.key}: ${c.type}${c.hasDefault ? ' // with default' : ''}`,
       )
       .join('\n')}\n}\n\n`
   }
@@ -223,7 +223,7 @@ export const generateTypedefs = async ({
 
   types += 'type TableToTypeMap = {'
   types += tables
-    .map(t => t.name)
+    .map((t) => t.name)
     .reduce((a, b) => `${a}\n  ${b}: Table_${b}`, '')
   types += '\n}\n\n'
 
@@ -236,26 +236,26 @@ export const generateTypedefs = async ({
   types += 'export const Codegen = {\n'
   types += '  converters: {\n'
   const filteredTables = schema.tables
-    .map(t => ({
+    .map((t) => ({
       ...t,
       columns: t.columns
-        .map(c => ({
+        .map((c) => ({
           ...c,
           parsedComment:
             c.comment && c.comment.startsWith('{') && safeJSONParse(c.comment),
         }))
-        .filter(c => !!c.parsedComment),
+        .filter((c) => !!c.parsedComment),
     }))
-    .filter(t => t.columns.length > 0)
+    .filter((t) => t.columns.length > 0)
 
   if (filteredTables.length > 0) {
     types += filteredTables
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(table => {
+      .map((table) => {
         let ret = `    ${table.name}: {\n      `
         ret += table.columns
           .map(
-            column =>
+            (column) =>
               `${transformKey(column.name)}: ${JSON.stringify(
                 column.parsedComment,
               )}`,

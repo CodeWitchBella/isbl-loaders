@@ -117,7 +117,7 @@ export const makeLoaderMaker = <
   })()
   const converters = mapValues(
     { ...opts.converters, ...automaticConverters },
-    c => (c ? c({ table: opts.table }) : null),
+    (c) => (c ? c({ table: opts.table }) : null),
   )
   return (args: Args) => {
     const loader = new TableLoader<
@@ -128,15 +128,15 @@ export const makeLoaderMaker = <
       },
       Table
     >({
-      toDB: mapValues(converters, v => (v ? v.toDB : null)) as any,
-      fromDB: mapValues(converters, v => (v ? v.fromDB : null)) as any,
+      toDB: mapValues(converters, (v) => (v ? v.toDB : null)) as any,
+      fromDB: mapValues(converters, (v) => (v ? v.fromDB : null)) as any,
       table: opts.table as string,
       knex: args.knex,
       onInsert: (ids: number[]) => {
         if (onInsert)
           setImmediate(() => {
             onInsert(
-              ids.map(id => ({ type: opts.table, id })),
+              ids.map((id) => ({ type: opts.table, id })),
               args,
             )
           })
@@ -145,7 +145,7 @@ export const makeLoaderMaker = <
         if (onUpdate)
           setImmediate(() => {
             onUpdate(
-              ids.map(id => ({ type: opts.table, id })),
+              ids.map((id) => ({ type: opts.table, id })),
               args,
             )
           })

@@ -7,22 +7,22 @@ export const identityConverter: {
 } = {
   string: () => {
     return {
-      fromDB: v => v,
-      toDB: v => v,
+      fromDB: (v) => v,
+      toDB: (v) => v,
       jsType: 'string',
     }
   },
   number: () => {
     return {
-      fromDB: v => v,
-      toDB: v => v,
+      fromDB: (v) => v,
+      toDB: (v) => v,
       jsType: 'number',
     }
   },
   boolean: () => {
     return {
-      fromDB: v => v,
-      toDB: v => v,
+      fromDB: (v) => v,
+      toDB: (v) => v,
       jsType: 'boolean',
     }
   },

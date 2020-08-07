@@ -56,7 +56,7 @@ export type InitLoader<
 }
 
 export const unique = <T extends Object>(el: T, i: number, arr: T[]) =>
-  arr.findIndex(a => a === el) === i
+  arr.findIndex((a) => a === el) === i
 
 type Options<TableType /* extends { id: number } */, JSType> = {
   knex: Knex
@@ -86,10 +86,7 @@ function getError(captured: ReturnType<typeof captureStack>) {
       err.stack =
         err.stack.split('\n')[0] +
         '\n' +
-        captured.stack
-          .split('\n')
-          .slice(1)
-          .join('\n')
+        captured.stack.split('\n').slice(1).join('\n')
     }
     return err
   }
@@ -189,9 +186,9 @@ export default class TableLoader<
     { convert = false }: { convert?: boolean } = {},
   ): Promise<Defs['js'][]> {
     const res: any[] = await doQuery(this.knex.table(this.table).select())
-    const filtered = res.filter(a => a)
+    const filtered = res.filter((a) => a)
     if (!convert) return filtered
-    return filtered.map(a => this.fromDB(a)).filter(notNull)
+    return filtered.map((a) => this.fromDB(a)).filter(notNull)
   }
 
   /**
@@ -222,7 +219,7 @@ export default class TableLoader<
     ) => {
       if (!production && b && !loaders.has(b.query)) {
         const queryString = b.query.toString()
-        if (queryList.some(q => q === queryString)) {
+        if (queryList.some((q) => q === queryString)) {
           console.warn(
             'Warning: found two query functions with same source code but different reference',
           )
@@ -238,16 +235,16 @@ export default class TableLoader<
       if (!loaders.has(idx)) loaders.set(idx, [])
       const list = loaders.get(idx)!
       let loader = b
-        ? list.find(el =>
+        ? list.find((el) =>
             b.comparator ? b.comparator(el.args, b.args) : el.args === b.args,
           )
         : list[0]
       if (!loader) {
         loader = {
           args: b ? b.args : undefined,
-          f: new DataLoader<any, Defs['js'][]>(async ids => {
+          f: new DataLoader<any, Defs['js'][]>(async (ids) => {
             const rows = await this.query(
-              q =>
+              (q) =>
                 b
                   ? b
                       .query(
@@ -259,7 +256,7 @@ export default class TableLoader<
               { convert: false },
             )
             return ids.map(
-              id => rows.filter((x: any) => x[dbField] === id) || [],
+              (id) => rows.filter((x: any) => x[dbField] === id) || [],
             )
           }),
         }
@@ -272,20 +269,20 @@ export default class TableLoader<
       if (Array.isArray(key)) {
         return loader.f
           .loadMany(key.map(valueToDB))
-          .then(v =>
+          .then((v) =>
             v
               .flat()
-              .map(el => this.fromDB(el))
+              .map((el) => this.fromDB(el))
               .filter(notNull),
           )
-          .then(ret => {
+          .then((ret) => {
             for (const el of ret) if (el instanceof Error) throw el
             return ret
           })
       } else {
         return loader.f
           .load(valueToDB(key))
-          .then(v => v.map(el => this.fromDB(el)).filter(notNull))
+          .then((v) => v.map((el) => this.fromDB(el)).filter(notNull))
       }
     }
   }
@@ -337,12 +334,12 @@ export default class TableLoader<
     const loader = new DataLoader<
       [Defs['js'][FieldA], Defs['js'][FieldB]],
       Defs['js'] | null
-    >(ids =>
+    >((ids) =>
       Promise.all(
-        ids.map(async id => {
+        ids.map(async (id) => {
           const a = this.toDB({ [fieldA]: id[0] })
           const b = this.toDB({ [fieldB]: id[1] })
-          const rows = await this.query(q => q.where(a).andWhere(b))
+          const rows = await this.query((q) => q.where(a).andWhere(b))
           if (rows.length > 1) {
             return new Error(
               `Found more than one item for query ${JSON.stringify(
@@ -358,7 +355,7 @@ export default class TableLoader<
       loader.clearAll()
     })
     return (v1: Defs['js'][FieldA], v2: Defs['js'][FieldB]) =>
-      loader.load([v1, v2]).then(v => (v ? this.fromDB(v) : v))
+      loader.load([v1, v2]).then((v) => (v ? this.fromDB(v) : v))
   }
 
   /**
@@ -376,16 +373,16 @@ export default class TableLoader<
   delete(): InitLoader<Defs, Table>['delete'] {
     const toArray = <T extends {}>(v: OrArray<T>): T[] =>
       Array.isArray(v) ? v : [v]
-    return async ids =>
+    return async (ids) =>
       this.knex
         .table(this.table)
         .delete()
         .whereIn(
           'id',
-          toArray(ids).map(id => this.toDB({ id }).id),
+          toArray(ids).map((id) => this.toDB({ id }).id),
         )
         .then(() => {
-          this.clearers.forEach(c => c())
+          this.clearers.forEach((c) => c())
         })
   }
 
@@ -395,7 +392,7 @@ export default class TableLoader<
         .table(this.table)
         .select()
         .orderBy(fieldToDB(orderBy as any))
-        .then(l => l.map((a: any) => this.fromDB(a)).filter(notNull)) as any
+        .then((l) => l.map((a: any) => this.fromDB(a)).filter(notNull)) as any
   }
 
   /**
@@ -409,26 +406,26 @@ export default class TableLoader<
       },
       Defs['js']
     >(
-      async list => {
-        const values = list.map(v => v.value)
+      async (list) => {
+        const values = list.map((v) => v.value)
         const insert = (v: any) => {
           const q = this.knex.table(this.table).insert(v)
           return this.knex
             .raw('? on conflict do nothing returning *', q)
-            .then(v => (v as any).rows)
+            .then((v) => (v as any).rows)
         }
         try {
-          const batchedValues = values.filter(v => Object.keys(v).length > 0)
+          const batchedValues = values.filter((v) => Object.keys(v).length > 0)
           let returning: any[] =
             batchedValues.length > 0 ? await insert(batchedValues) : []
-          this.clearers.forEach(c => c())
-          this.options.onInsert(returning.map(r => r.id))
+          this.clearers.forEach((c) => c())
+          this.options.onInsert(returning.map((r) => r.id))
 
           returning = returning.concat(
             await Promise.all(
               values
-                .filter(v => Object.keys(v).length === 0)
-                .map(v => insert(v).then(l => l[0])),
+                .filter((v) => Object.keys(v).length === 0)
+                .map((v) => insert(v).then((l) => l[0])),
             ),
           )
 
@@ -437,7 +434,7 @@ export default class TableLoader<
            * kind of like splice
            */
           const inToReturning = (inEl: any) => {
-            const index = returning.findIndex(el => {
+            const index = returning.findIndex((el) => {
               // the undefined comparison is here because of default values
               const weakCompare = (a: any, b: any) =>
                 // eslint-disable-next-line eqeqeq
@@ -453,7 +450,7 @@ export default class TableLoader<
 
           const ret = values
             .map(inToReturning)
-            .map(v => (v ? this.fromDB(v) : new Error('Insert failed')))
+            .map((v) => (v ? this.fromDB(v) : new Error('Insert failed')))
           if (returning.length > 0) {
             // eslint-disable-next-line no-console
             console.log({ values, returning })
@@ -463,12 +460,12 @@ export default class TableLoader<
           }
           return ret
         } catch (e) {
-          return list.map(v => v.getError(e.message))
+          return list.map((v) => v.getError(e.message))
         }
       },
       { cache: false },
     )
-    return value =>
+    return (value) =>
       loader.load({
         value: this.toDB(value, { ignoreUndefined: true }),
         getError: getError(captureStack()),
@@ -485,7 +482,7 @@ export default class TableLoader<
         .update(this.toDB(value, { ignoreUndefined: true }))
 
       const ids = (Array.isArray(where) ? where : [where]).map(
-        id => this.toDB({ id }).id,
+        (id) => this.toDB({ id }).id,
       )
 
       if (ids.length === 0) {
@@ -497,7 +494,7 @@ export default class TableLoader<
       }
       await q
 
-      this.clearers.forEach(c => c())
+      this.clearers.forEach((c) => c())
       this.options.onUpdate(ids)
     }
   }
@@ -513,7 +510,7 @@ export default class TableLoader<
         .table(this.table)
         .where(dbId)
         .update(this.toDB(value, { ignoreUndefined: true }))
-      this.clearers.forEach(c => c())
+      this.clearers.forEach((c) => c())
       this.options.onUpdate([dbId.id])
     }
   }
@@ -522,9 +519,9 @@ export default class TableLoader<
    * Runs select query and transforms result to Defs['js']ype
    */
   raw(): InitLoader<Defs, Table>['raw'] {
-    return async doQuery =>
-      this.query(doQuery).then(v =>
-        v.map(el => this.fromDB(el)).filter(notNull),
+    return async (doQuery) =>
+      this.query(doQuery).then((v) =>
+        v.map((el) => this.fromDB(el)).filter(notNull),
       )
   }
 
@@ -532,7 +529,7 @@ export default class TableLoader<
    * Returns number of records matching q
    */
   count(): InitLoader<Defs, Table>['count'] {
-    return async (doQuery = a => a) =>
+    return async (doQuery = (a) => a) =>
       doQuery(this.knex.table(this.table).count()).then((v: any) =>
         Number.parseInt(v[0].count, 10),
       )
@@ -544,8 +541,8 @@ export default class TableLoader<
    */
   preparedRaw(doQuery: (q: Knex.QueryBuilder) => Knex.QueryBuilder) {
     return () =>
-      this.query(doQuery).then(v =>
-        v.map(el => this.fromDB(el)).filter(notNull),
+      this.query(doQuery).then((v) =>
+        v.map((el) => this.fromDB(el)).filter(notNull),
       )
   }
 
