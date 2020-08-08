@@ -37,9 +37,9 @@
     "@types/lodash.isequalwith": "^4.4.6",
     "@types/lodash.mapvalues": "^4.6.6",
     "@types/lodash.snakecase": "^4.1.6",
-    "@types/node": "^12.12.17",
-    "knex": "^0.20.4",
-    "pg": "^7.14.0"
+    "@types/node": "^14.0.27",
+    "knex": "^0.21.2",
+    "pg": "^8.3.0"
   },
   "scripts": {
     "prepare": "microbundle --target node",
