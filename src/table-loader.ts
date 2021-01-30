@@ -15,10 +15,6 @@ const transformKey = (transformer: (key: string) => string) => (obj: any) => {
   return ret
 }
 
-function fieldToDB(field: string) {
-  return snakeCase(field)
-}
-
 type OrArray<T> = T | readonly T[]
 type IDType<Table> = { id: number; type: Table }
 
@@ -92,6 +88,16 @@ function getError(captured: ReturnType<typeof captureStack>) {
   }
 }
 
+function caser(t: (v: string) => string): (v: string) => string {
+  const cache: { [key: string]: string } = {}
+  return (v) => {
+    if (cache[v] !== undefined) return cache[v]
+    const res = t(v)
+    cache[v] = res
+    return res
+  }
+}
+
 export default class TableLoader<
   Defs extends {
     table: {}
@@ -108,6 +114,10 @@ export default class TableLoader<
 
   private options: Options<Defs['table'], Defs['js']>
 
+  private cameler = caser(camelCase)
+
+  private fieldToDB = caser(snakeCase)
+
   constructor(options: Options<Defs['table'], Defs['js']>) {
     this.table = options.table
     this.knex = options.knex
@@ -116,7 +126,7 @@ export default class TableLoader<
   }
 
   private fromDB(o: Defs['table']): Defs['js'] {
-    const object = transformKey(camelCase)(o)
+    const object = transformKey(this.cameler)(o)
     const r = { ...object, id: { type: this.table, id: object.id } }
     if (this.options.fromDB) {
       for (const [key, resolver] of Object.entries(this.options.fromDB)) {
@@ -174,7 +184,7 @@ export default class TableLoader<
         throw new Error('ID must be number')
       }
     }
-    return transformKey(snakeCase)(r)
+    return transformKey(this.fieldToDB)(r)
   }
 
   /**
@@ -207,7 +217,7 @@ export default class TableLoader<
     >()
     const queryList: string[] = []
 
-    const dbField = fieldToDB(field as any)
+    const dbField = this.fieldToDB(field as any)
     const valueToDB = (v: Defs['js']) => this.toDB({ [field]: v })[dbField]
     return <T extends Object | undefined = undefined>(
       key: OrArray<Key>,
@@ -371,7 +381,7 @@ export default class TableLoader<
    * Deletes values
    */
   delete(): InitLoader<Defs, Table>['delete'] {
-    const toArray = <T extends {}>(v: OrArray<T>): T[] =>
+    const toArray = <T extends {}>(v: OrArray<T>): readonly T[] =>
       Array.isArray(v) ? v : [v]
     return async (ids) =>
       this.knex
@@ -391,7 +401,7 @@ export default class TableLoader<
       this.knex
         .table(this.table)
         .select()
-        .orderBy(fieldToDB(orderBy as any))
+        .orderBy(this.fieldToDB(orderBy as any))
         .then((l) => l.map((a: any) => this.fromDB(a)).filter(notNull)) as any
   }
 
