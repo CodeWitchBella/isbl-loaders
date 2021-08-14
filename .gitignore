@@ -1,1 +1,30 @@
-test-output.ts
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# production
+build
+dist
+*_cache_*
+*.d.ts
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+/yarn.lock
+/package-lock.json
+*.png
+# npm pack
+codewitchbella-*
+isbl-*
