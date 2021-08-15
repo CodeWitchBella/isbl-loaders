@@ -1,8 +1,8 @@
-export {
+export { makeLoaderMaker } from './make-loader-maker'
+export type {
   Converter,
   ConverterInfo,
   ConverterFactory,
-  makeLoaderMaker,
 } from './make-loader-maker'
 export { generateTypedefs } from './generate-typedefs'
 // This is built-in converter. Not neccessary to export

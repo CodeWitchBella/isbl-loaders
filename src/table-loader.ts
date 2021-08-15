@@ -1,11 +1,11 @@
 import DataLoader from 'dataloader'
-import Knex, { QueryBuilder } from 'knex'
+import { Knex } from 'knex'
 import isEqualWith from 'lodash.isequalwith'
 import snakeCase from 'lodash.snakecase'
 import camelCase from 'lodash.camelcase'
 import { PickExcept, notNull, NullToOptional } from '@codewitchbella/ts-utils'
 
-const production = process.env.NODE_ENV === 'production'
+const production = process.env['NODE_ENV'] === 'production'
 
 const transformKey = (transformer: (key: string) => string) => (obj: any) => {
   const ret = {} as any
@@ -222,7 +222,7 @@ export default class TableLoader<
     return <T extends Object | undefined = undefined>(
       key: OrArray<Key>,
       b?: {
-        query: (q: QueryBuilder, args: T) => QueryBuilder
+        query: (q: Knex.QueryBuilder, args: T) => Knex.QueryBuilder
         args: T
         comparator?: (a: T, b: T) => boolean
       },

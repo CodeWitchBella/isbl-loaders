@@ -1,4 +1,4 @@
-import Knex from 'knex'
+import type { Knex } from 'knex'
 import { PickExcept, notNull } from '@codewitchbella/ts-utils'
 import mapValues from 'lodash.mapvalues'
 import TableLoader, { InitLoader } from './table-loader'
