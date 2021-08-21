@@ -476,10 +476,11 @@ export default class TableLoader<
 
     const sliceIt = (list: readonly Item[]) => {
       if (list.length <= 0) return []
-      const maxFields = list.reduce((a, b) => {
+      let maxFields = list.reduce((a, b) => {
         const count = Object.keys(b.value).length
         return a > count ? a : count
       }, 0)
+      if (maxFields < 1) maxFields = 1
 
       const MAX_BINDS = 65535 // https://github.com/knex/knex/issues/3929
 
