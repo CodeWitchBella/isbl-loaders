@@ -1,9 +1,21 @@
 import DataLoader from 'dataloader'
 import { Knex } from 'knex'
-import isEqualWith from 'lodash.isequalwith'
-import snakeCase from 'lodash.snakecase'
-import camelCase from 'lodash.camelcase'
-import { PickExcept, notNull, NullToOptional } from '@codewitchbella/ts-utils'
+import isEqualWith from 'lodash/isequalwith'
+import snakeCase from 'lodash/snakecase'
+import camelCase from 'lodash/camelcase'
+import { notNull } from '@isbl/ts-utils'
+
+
+type NullableKeys<T> = {
+  [K in keyof T]: null extends T[K] ? K : never
+}[keyof T]
+
+type NonNullableKeys<T> = {
+  [K in keyof T]: null extends T[K] ? never : K
+}[keyof T]
+
+type NullToOptional<T> = { [k in NullableKeys<T>]?: T[k] | undefined }
+  & { [k in NonNullableKeys<T>]: T[k] }
 
 const production = process.env['NODE_ENV'] === 'production'
 
@@ -33,10 +45,10 @@ export type InitLoader<
   insert: (v: Defs['insert']) => Promise<Defs['js']>
   update: (
     id: IDType<Table>,
-    value: Partial<PickExcept<Defs['js'], 'id'>>,
+    value: Partial<Omit<Defs['js'], 'id'>>,
   ) => Promise<void>
   updateWhere: (
-    value: Partial<PickExcept<Defs['js'], 'id'>>,
+    value: Partial<Omit<Defs['js'], 'id'>>,
     where: OrArray<IDType<Table>>,
   ) => Promise<void>
   raw: (
@@ -133,7 +145,7 @@ export default class TableLoader<
         if (key in object && resolver) {
           try {
             r[key] = (resolver as any)(object[key])
-          } catch (e) {
+          } catch (e: any) {
             const err = new Error(
               `Error occured while converting field ${key} of table ${
                 this.table
@@ -410,7 +422,7 @@ export default class TableLoader<
    */
   insert(): InitLoader<Defs, Table>['insert'] {
     type Item = {
-      value: NullToOptional<PickExcept<Defs['js'], 'id'>>
+      value: NullToOptional<Omit<Defs['js'], 'id'>>
       getError: (message: string) => Error
     }
     const insertSlice = async (

@@ -1,8 +1,8 @@
 import type { Knex } from 'knex'
 import { promisify } from 'util'
 import * as fs from 'fs'
-import camelCase from 'lodash.camelcase'
-import getSchema from '@codewitchbella/postgres-schema'
+import camelCase from 'lodash/camelcase'
+import getSchema from '@isbl/postgres-schema'
 import {
   convertersSymbol,
   tableLoaderSymbol,
@@ -51,7 +51,7 @@ function typeForColumn(column: {
 async function readFile(output: string) {
   try {
     return await promisify(fs.readFile)(output, 'utf-8')
-  } catch (e) {
+  } catch (e: any) {
     if (e.code === 'ENOENT') return ''
     throw e
   }

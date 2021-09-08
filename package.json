@@ -2,49 +2,39 @@
   "name": "@isbl/loaders",
   "version": "0.10.2",
   "description": "Query and update database in sane way with typescript checking",
-  "main": "dist/index.js",
-  "source": "src/index.ts",
-  "types": "dist/index.d.ts",
+  "types": "dist/loaders.d.ts",
+  "exports": "./dist/loaders.esm.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/CodeWitchBella/isbl-loaders.git"
   },
   "author": "Isabella Skořepová <isabella@skorepova.info>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/CodeWitchBella/isbl-loaders/issues"
-  },
-  "homepage": "https://github.com/CodeWitchBella/isbl-loaders#readme",
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": false,
   "dependencies": {
-    "@codewitchbella/postgres-schema": "^0.2.0",
-    "@codewitchbella/ts-utils": "^0.2.0",
+    "@isbl/postgres-schema": "^0.3.1",
+    "@isbl/ts-utils": "^1.0.1",
     "dataloader": "^2.0.0",
-    "lodash.camelcase": "^4.3.0",
-    "lodash.isequalwith": "^4.4.0",
-    "lodash.mapvalues": "^4.6.0",
-    "lodash.snakecase": "^4.1.1"
+    "lodash": "^4.3.0"
   },
   "peerDependencies": {
-    "knex": ">=0.16.3 && <1.0.0"
+    "knex": "^0.95.0"
   },
   "devDependencies": {
-    "@codewitchbella/microbundle": "^0.11.1",
-    "@codewitchbella/scripts-backend": "^0.3.0",
-    "@isbl/publisher": "^0.6.1",
-    "@types/lodash.camelcase": "^4.3.6",
-    "@types/lodash.isequalwith": "^4.4.6",
-    "@types/lodash.mapvalues": "^4.6.6",
-    "@types/lodash.snakecase": "^4.1.6",
-    "@types/node": "^14.0.27",
-    "knex": ">=0.16.3 && <1.0.0",
-    "pg": "^8.3.0"
+    "@isbl/publisher": "^0.7.1",
+    "@types/lodash": "^4.14.172",
+    "@types/node": "^16.9.0",
+    "knex": "^0.95.11",
+    "microbundle": "^0.13.3",
+    "pg": "^8.7.1"
   },
   "scripts": {
-    "prepare": "microbundle --target node",
+    "prepare": "microbundle src/loaders.ts --target node -f esm",
     "prepublishOnly": "isbl-publisher prepublishOnly",
     "publish:npm": "isbl-publisher publish --no-draft"
-  }
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ]
 }

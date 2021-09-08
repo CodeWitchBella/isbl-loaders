@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
-import { PickExcept, notNull } from '@codewitchbella/ts-utils'
-import mapValues from 'lodash.mapvalues'
+import { notNull } from '@isbl/ts-utils'
+import mapValues from 'lodash/mapvalues'
 import TableLoader, { InitLoader } from './table-loader'
 import { enumConverter } from './converters/enum-converter'
 
@@ -22,10 +22,6 @@ export type ConverterInfo<T> = {
 export type ConverterFactory<Table, JS, TableName> = (
   info: ConverterInfo<TableName>,
 ) => Converter<Table, JS>
-
-type JSTypeWithID<JSType, TableName> = PickExcept<JSType, 'id'> & {
-  id: IDType<TableName>
-}
 
 export const convertersSymbol = Symbol('converters')
 export const tableLoaderSymbol = Symbol('tableLoader')
