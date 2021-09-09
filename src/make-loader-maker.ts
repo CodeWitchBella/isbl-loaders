@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 import { notNull } from '@isbl/ts-utils'
-import mapValues from 'lodash/mapvalues'
+import mapValues from 'lodash/mapValues.js'
 import TableLoader, { InitLoader } from './table-loader'
 import { enumConverter } from './converters/enum-converter'
 

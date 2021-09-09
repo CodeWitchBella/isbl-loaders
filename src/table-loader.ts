@@ -1,8 +1,8 @@
 import DataLoader from 'dataloader'
 import { Knex } from 'knex'
-import isEqualWith from 'lodash/isequalwith'
-import snakeCase from 'lodash/snakecase'
-import camelCase from 'lodash/camelcase'
+import isEqualWith from 'lodash/isEqualWith.js'
+import snakeCase from 'lodash/snakeCase.js'
+import camelCase from 'lodash/camelCase.js'
 import { notNull } from '@isbl/ts-utils'
 
 

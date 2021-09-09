@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 import { promisify } from 'util'
 import * as fs from 'fs'
-import camelCase from 'lodash/camelcase'
+import camelCase from 'lodash/camelCase.js'
 import getSchema from '@isbl/postgres-schema'
 import {
   convertersSymbol,
