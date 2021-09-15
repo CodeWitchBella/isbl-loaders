@@ -5,7 +5,6 @@ import snakeCase from 'lodash/snakeCase.js'
 import camelCase from 'lodash/camelCase.js'
 import { notNull } from '@isbl/ts-utils'
 
-
 type NullableKeys<T> = {
   [K in keyof T]: null extends T[K] ? K : never
 }[keyof T]
@@ -14,8 +13,8 @@ type NonNullableKeys<T> = {
   [K in keyof T]: null extends T[K] ? never : K
 }[keyof T]
 
-type NullToOptional<T> = { [k in NullableKeys<T>]?: T[k] | undefined }
-  & { [k in NonNullableKeys<T>]: T[k] }
+type NullToOptional<T> = { [k in NullableKeys<T>]?: T[k] | undefined } &
+  { [k in NonNullableKeys<T>]: T[k] }
 
 const production = process.env['NODE_ENV'] === 'production'
 
@@ -36,7 +35,7 @@ export type InitLoader<
     js: {}
     insert: {}
   },
-  Table
+  Table,
 > = {
   byId: <Assert extends true | false = false>(
     id: IDType<Table>,
@@ -116,7 +115,7 @@ export default class TableLoader<
     js: {}
     insert: {}
   },
-  Table
+  Table,
 > {
   private table: string
 
@@ -221,7 +220,7 @@ export default class TableLoader<
    */
   byFieldValueMultiple<
     Key extends Defs['js'][Field],
-    Field extends keyof Defs['js']
+    Field extends keyof Defs['js'],
   >(field: Field) {
     const loaders = new Map<
       Function | undefined,
@@ -317,30 +316,32 @@ export default class TableLoader<
    */
   byFieldValueSingle<
     Key extends Defs['js'][Field],
-    Field extends keyof Defs['js']
+    Field extends keyof Defs['js'],
   >(field: Field) {
     const loader = this.byFieldValueMultiple(field)
     return <Assert extends true | false = false>(
       a: Key,
       { assertNull }: { assertNull?: Assert } = {},
     ) =>
-      loader(a).then((v: Defs['js'][]):
-        | (Assert extends false ? null : never)
-        | Defs['js'] => {
-        if (v.length === 0) {
-          if (assertNull)
-            throw new Error(
-              `Did not find item for field ${JSON.stringify(
-                field,
-              )} value ${JSON.stringify(a)} in table "${this.table}"`,
-            )
-          return null!
-        }
-        if (v.length === 1) return v[0]
-        throw new Error(
-          `Found more than one item for field "${field}" value "${a}" in table "${this.table}"`,
-        )
-      })
+      loader(a).then(
+        (
+          v: Defs['js'][],
+        ): (Assert extends false ? null : never) | Defs['js'] => {
+          if (v.length === 0) {
+            if (assertNull)
+              throw new Error(
+                `Did not find item for field ${JSON.stringify(
+                  field,
+                )} value ${JSON.stringify(a)} in table "${this.table}"`,
+              )
+            return null!
+          }
+          if (v.length === 1) return v[0]
+          throw new Error(
+            `Found more than one item for field "${field}" value "${a}" in table "${this.table}"`,
+          )
+        },
+      )
   }
 
   /**

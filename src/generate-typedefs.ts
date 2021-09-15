@@ -14,18 +14,20 @@ function transformKey(key: string) {
 }
 
 function convertType(type: string) {
-  const ret = ({
-    jsonb: 'any',
-    integer: 'number',
-    text: 'string',
-    boolean: 'boolean',
-    'double precision': 'number',
-    bigint: 'string',
-    numeric: 'string',
-    json: 'any',
-    'timestamp with time zone': 'Date',
-    'character varying': 'string',
-  } as { [key: string]: string })[type]
+  const ret = (
+    {
+      jsonb: 'any',
+      integer: 'number',
+      text: 'string',
+      boolean: 'boolean',
+      'double precision': 'number',
+      bigint: 'string',
+      numeric: 'string',
+      json: 'any',
+      'timestamp with time zone': 'Date',
+      'character varying': 'string',
+    } as { [key: string]: string }
+  )[type]
   if (!ret) {
     throw new Error(`Unknown type ${type}`)
   }

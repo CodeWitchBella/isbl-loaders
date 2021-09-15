@@ -38,131 +38,134 @@ type Codegen = {
     [key: string]: { [key: string]: any } | undefined
   }
 }
-export const makeLoaderMaker = <
-  Definitions extends {
-    table: {}
-    js: { [tab in keyof Definitions['table']]: any }
-    insert: { [tab in keyof Definitions['table']]: any }
-  }
->(
-  codegen: Codegen,
-  settings: {
-    converters: {
-      [key: string]: (definition: any) => ConverterFactory<any, any, any>
+export const makeLoaderMaker =
+  <
+    Definitions extends {
+      table: {}
+      js: { [tab in keyof Definitions['table']]: any }
+      insert: { [tab in keyof Definitions['table']]: any }
+    },
+  >(
+    codegen: Codegen,
+    settings: {
+      converters: {
+        [key: string]: (definition: any) => ConverterFactory<any, any, any>
+      }
+    },
+  ) =>
+  <Table extends keyof Definitions['table']>(opts: {
+    table: Table
+    converters?: {
+      [key in keyof Definitions['table'][Table]]?: key extends keyof Definitions['js'][Table]
+        ? ConverterFactory<
+            Definitions['table'][Table][key],
+            Definitions['js'][Table][key],
+            Table
+          >
+        : ConverterFactory<
+            Definitions['table'][Table][key],
+            Definitions['table'][Table][key],
+            Table
+          >
     }
-  },
-) => <Table extends keyof Definitions['table']>(opts: {
-  table: Table
-  converters?: {
-    [key in keyof Definitions['table'][Table]]?: key extends keyof Definitions['js'][Table]
-      ? ConverterFactory<
-          Definitions['table'][Table][key],
-          Definitions['js'][Table][key],
-          Table
-        >
-      : ConverterFactory<
-          Definitions['table'][Table][key],
-          Definitions['table'][Table][key],
-          Table
-        >
-  }
-  onInsert?: (id: IDType<Table>[], args: Args) => void
-  onUpdate?: (id: IDType<Table>[], args: Args) => void
-}) => <T extends {}>(
-  definition: (
-    tableLoader: TableLoader<
-      {
-        js: Definitions['js'][Table]
-        table: Definitions['table'][Table]
-        insert: Definitions['insert'][Table]
-      },
-      Table
-    >,
-  ) => T = () => ({} as T),
-) => {
-  const { onUpdate, onInsert } = opts
+    onInsert?: (id: IDType<Table>[], args: Args) => void
+    onUpdate?: (id: IDType<Table>[], args: Args) => void
+  }) =>
+  <T extends {}>(
+    definition: (
+      tableLoader: TableLoader<
+        {
+          js: Definitions['js'][Table]
+          table: Definitions['table'][Table]
+          insert: Definitions['insert'][Table]
+        },
+        Table
+      >,
+    ) => T = () => ({} as T),
+  ) => {
+    const { onUpdate, onInsert } = opts
 
-  const automaticConverters = (() => {
-    if (!codegen || !codegen.converters) return {}
-    const src = codegen.converters[opts.table as string]
-    if (!src) return {}
-    return fromEntries(
-      Object.entries(src)
-        .map(([column, definition]) => {
-          if (
-            typeof definition !== 'object' ||
-            !definition ||
-            !definition.autoConvert
-          )
-            return null
-          const getConverter = settings.converters[definition.type]
-          if (getConverter) {
-            return [column, getConverter(definition)]
-          }
-          if (definition.type === 'enum') {
-            return [column, enumConverter(definition.values)]
-          }
-          throw new Error(
-            `Unknown automatic converter type ${JSON.stringify(
-              definition.type,
-            )}`,
-          )
-        })
-        .filter(notNull),
+    const automaticConverters = (() => {
+      if (!codegen || !codegen.converters) return {}
+      const src = codegen.converters[opts.table as string]
+      if (!src) return {}
+      return fromEntries(
+        Object.entries(src)
+          .map(([column, definition]) => {
+            if (
+              typeof definition !== 'object' ||
+              !definition ||
+              !definition.autoConvert
+            )
+              return null
+            const getConverter = settings.converters[definition.type]
+            if (getConverter) {
+              return [column, getConverter(definition)]
+            }
+            if (definition.type === 'enum') {
+              return [column, enumConverter(definition.values)]
+            }
+            throw new Error(
+              `Unknown automatic converter type ${JSON.stringify(
+                definition.type,
+              )}`,
+            )
+          })
+          .filter(notNull),
+      )
+    })()
+    const converters = mapValues(
+      { ...opts.converters, ...automaticConverters },
+      (c) => (c ? c({ table: opts.table }) : null),
     )
-  })()
-  const converters = mapValues(
-    { ...opts.converters, ...automaticConverters },
-    (c) => (c ? c({ table: opts.table }) : null),
-  )
-  return (args: Args) => {
-    const loader = new TableLoader<
-      {
-        js: Definitions['js'][Table]
-        table: Definitions['table'][Table]
-        insert: Definitions['insert'][Table]
-      },
-      Table
-    >({
-      toDB: mapValues(converters, (v) => (v ? v.toDB : null)) as any,
-      fromDB: mapValues(converters, (v) => (v ? v.fromDB : null)) as any,
-      table: opts.table as string,
-      knex: args.knex,
-      onInsert: onInsert
-        ? (ids: number[]) => {
+    return (args: Args) => {
+      const loader = new TableLoader<
+        {
+          js: Definitions['js'][Table]
+          table: Definitions['table'][Table]
+          insert: Definitions['insert'][Table]
+        },
+        Table
+      >({
+        toDB: mapValues(converters, (v) => (v ? v.toDB : null)) as any,
+        fromDB: mapValues(converters, (v) => (v ? v.fromDB : null)) as any,
+        table: opts.table as string,
+        knex: args.knex,
+        onInsert: onInsert
+          ? (ids: number[]) => {
+              setImmediate(() => {
+                onInsert(
+                  ids.map((id) => ({ type: opts.table, id })),
+                  args,
+                )
+              })
+            }
+          : null,
+        onUpdate: (ids: number[]) => {
+          if (onUpdate)
             setImmediate(() => {
-              onInsert(
+              onUpdate(
                 ids.map((id) => ({ type: opts.table, id })),
                 args,
               )
             })
-          }
-        : null,
-      onUpdate: (ids: number[]) => {
-        if (onUpdate)
-          setImmediate(() => {
-            onUpdate(
-              ids.map((id) => ({ type: opts.table, id })),
-              args,
-            )
-          })
-      },
-    })
+        },
+      })
 
-    const custom = definition(loader)
-    const ret = Object.assign(loader.initLoader(), custom)
+      const custom = definition(loader)
+      const ret = Object.assign(loader.initLoader(), custom)
 
-    return Object.assign(ret, {
-      [convertersSymbol]: converters,
-      [tableLoaderSymbol]: loader,
-    }) as InitLoader<
-      {
-        js: Definitions['js'][Table]
-        table: Definitions['table'][Table]
-        insert: Definitions['insert'][Table]
-      },
-      Table
-    > &
-      typeof custom
+      return Object.assign(ret, {
+        [convertersSymbol]: converters,
+        [tableLoaderSymbol]: loader,
+      }) as InitLoader<
+        {
+          js: Definitions['js'][Table]
+          table: Definitions['table'][Table]
+          insert: Definitions['insert'][Table]
+        },
+        Table
+      > &
+        typeof custom
+    }
   }
-}

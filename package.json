@@ -1,6 +1,6 @@
 {
   "name": "@isbl/loaders",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Query and update database in sane way with typescript checking",
   "types": "dist/loaders.d.ts",
   "exports": "./dist/loaders.esm.js",
