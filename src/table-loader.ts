@@ -79,7 +79,7 @@ type Options<TableType /* extends { id: number } */, JSType> = {
       ? (t: JSType[key]) => TableType[key]
       : never
   }
-  onInsert: (id: number[]) => void
+  onInsert: ((id: number[]) => void) | null
   onUpdate: (id: number[]) => void
 }
 
@@ -428,6 +428,7 @@ export default class TableLoader<
     const insertSlice = async (
       trx: Knex.Transaction,
       list: readonly Item[],
+      onIds: null | ((ids: number[]) => void),
     ) => {
       const values = list.map((v) => v.value)
       const insert = (v: any) => {
@@ -441,7 +442,7 @@ export default class TableLoader<
         let returning: any[] =
           batchedValues.length > 0 ? await insert(batchedValues) : []
         this.clearers.forEach((c) => c())
-        this.options.onInsert(returning.map((r) => r.id))
+        if (onIds) onIds(returning.map((r) => r.id))
 
         returning = returning.concat(
           await Promise.all(
@@ -513,9 +514,19 @@ export default class TableLoader<
     const loader = new DataLoader<Item, Defs['js']>(
       async (list) => {
         const sliced = sliceIt(list)
+        let allIds: number[][] = []
         const result = await this.knex.transaction((trx) =>
-          Promise.all(sliced.map((slice) => insertSlice(trx, slice))),
+          Promise.all(
+            sliced.map((slice) =>
+              insertSlice(
+                trx,
+                slice,
+                this.options.onInsert ? (ids) => allIds.push(ids) : null,
+              ),
+            ),
+          ),
         )
+        this.options.onInsert?.(allIds.flat())
         return result.reduce((a, b) => a.concat(b), [])
       },
       { cache: false },

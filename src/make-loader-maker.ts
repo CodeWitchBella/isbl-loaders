@@ -128,15 +128,16 @@ export const makeLoaderMaker = <
       fromDB: mapValues(converters, (v) => (v ? v.fromDB : null)) as any,
       table: opts.table as string,
       knex: args.knex,
-      onInsert: (ids: number[]) => {
-        if (onInsert)
-          setImmediate(() => {
-            onInsert(
-              ids.map((id) => ({ type: opts.table, id })),
-              args,
-            )
-          })
-      },
+      onInsert: onInsert
+        ? (ids: number[]) => {
+            setImmediate(() => {
+              onInsert(
+                ids.map((id) => ({ type: opts.table, id })),
+                args,
+              )
+            })
+          }
+        : null,
       onUpdate: (ids: number[]) => {
         if (onUpdate)
           setImmediate(() => {
